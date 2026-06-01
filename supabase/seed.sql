@@ -1,0 +1,53 @@
+-- ============================================================
+-- VINTAGERIE — Dati di esempio: mercatini italiani reali
+-- Copia e incolla nell'editor SQL di Supabase DOPO lo schema
+-- ============================================================
+
+INSERT INTO public.markets (name, description, city, region, address, lat, lng, website, instagram, frequency, schedule_notes, categories, image_url, is_verified, is_featured, avg_rating, review_count) VALUES
+
+-- LAZIO
+('Porta Portese', 'Il mercato delle pulci più famoso d''Italia, attivo dal 1945. Ogni domenica mattina trasforma Trastevere in un labirinto di bancarelle che vendono di tutto: abbigliamento vintage, vinili, mobili, antiquariato, libri e oggetti curiosi. Arrivare entro le 8 per i pezzi migliori.', 'Roma', 'Lazio', 'Via Portuense / Piazza di Porta Portese', 41.8803, 12.4726, NULL, '@portaportese_official', 'settimanale', 'Ogni domenica, 6:00–14:00', ARRAY['Abbigliamento','Vinili','Libri','Mobili','Gioielli','Oggetti da cucina'], 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80', true, true, 4.5, 142),
+
+('Mercato di Via Sannio', 'Mercato storico fuori Porta San Giovanni, famoso per abbigliamento militare, giacche in pelle vintage e jeans usati di qualità. Un''istituzione per chi cerca capi anni ''70 e ''80 a prezzi onesti.', 'Roma', 'Lazio', 'Via Sannio, San Giovanni', 41.8823, 12.5144, NULL, NULL, 'settimanale', 'Ogni lunedì–sabato, 8:00–14:00', ARRAY['Abbigliamento','Accessori','Borse'], 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80', true, false, 4.1, 67),
+
+-- LOMBARDIA
+('Mercatone dell''Antiquariato — Navigli', 'Ogni ultima domenica del mese, i Navigli si trasformano nel più grande mercatino di antiquariato di Milano. Oltre 400 espositori lungo 4 km di alzaia. Perfetto per trovare mobili liberty, gioielli art deco, ceramiche e stampe d''epoca.', 'Milano', 'Lombardia', 'Alzaia Naviglio Grande', 45.4558, 9.1734, 'https://www.navigligrandi.it', '@navigligrandi', 'mensile', 'Ultima domenica del mese, 8:30–18:00', ARRAY['Mobili','Gioielli','Arte','Ceramiche','Vinili'], 'https://images.unsplash.com/photo-1555529902-5261145633bf?w=800&q=80', true, true, 4.7, 203),
+
+('Fiera di Senigallia', 'Il mercatino delle pulci più antico di Milano, lungo i Darsena e Via Calatafimi dal 1600. Ogni sabato mattina trovi libri antichi, monete, oggetti militari, fumetti e bric-à-brac di ogni genere.', 'Milano', 'Lombardia', 'Via Calatafimi / Darsena', 45.4558, 9.1776, NULL, NULL, 'settimanale', 'Ogni sabato, 8:00–17:00', ARRAY['Libri','Arte','Fotografia','Giocattoli'], 'https://images.unsplash.com/photo-1481437156560-3205f6a55735?w=800&q=80', true, true, 4.3, 88),
+
+('Vintage Market Milano', 'L''evento vintage più cool di Milano, ospitato in ex spazi industriali in Zona Tortona. Circa 200 selezionati espositori di moda vintage, streetwear e accessori dagli anni ''50 agli anni 2000. Non è un mercatino delle pulci — è una fiera curata.', 'Milano', 'Lombardia', 'Zona Tortona / Base Milano', 45.4522, 9.1713, 'https://www.vintagemarketitalia.it', '@vintagemarketmilano', 'mensile', 'Primo weekend del mese', ARRAY['Abbigliamento','Accessori','Borse','Scarpe'], 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80', true, true, 4.6, 115),
+
+-- TOSCANA
+('Fiera Antiquaria di Arezzo', 'Una delle fiere di antiquariato più importanti d''Europa, fondata nel 1968. Ogni primo weekend del mese trasforma il centro storico di Arezzo in un museo all''aperto con 500 espositori. Specializzata in antiquariato di qualità: argenterie, mobili, ceramiche, quadri.', 'Arezzo', 'Toscana', 'Piazza Grande e centro storico', 43.4656, 11.8797, 'https://www.fierantiquaria.it', '@fierantiquaria', 'mensile', 'Primo sabato e domenica del mese', ARRAY['Mobili','Arte','Ceramiche','Gioielli','Accessori'], 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80', true, true, 4.8, 189),
+
+('Mercato delle Cascine', 'Il mercato più grande di Firenze, ogni martedì mattina nel Parco delle Cascine. Abbigliamento, tessuti, scarpe, accessori e qualche pezzo vintage tra le bancarelle. Frequentato soprattutto dai fiorentini.', 'Firenze', 'Toscana', 'Parco delle Cascine, Viale degli Olmi', 43.7817, 11.2233, NULL, NULL, 'settimanale', 'Ogni martedì, 8:00–14:00', ARRAY['Abbigliamento','Accessori','Scarpe'], 'https://images.unsplash.com/photo-1568495248636-6432b97bd949?w=800&q=80', false, false, 3.8, 44),
+
+-- PIEMONTE
+('Gran Balon di Torino', 'Il mercato delle pulci storico di Torino, nel Borgo Dora. Ogni seconda domenica del mese, con oltre 250 espositori di antiquariato, oggetti vintage e curiosità. Meno patinato dell''Antiquariato di Arezzo, più autentico e sorprendente.', 'Torino', 'Piemonte', 'Borgo Dora, Via Lanino', 45.0844, 7.6883, 'https://www.balon.it', '@balonitorino', 'mensile', 'Seconda domenica del mese, 8:00–18:30', ARRAY['Mobili','Oggetti da cucina','Gioielli','Arte','Vinili'], 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800&q=80', true, true, 4.4, 97),
+
+-- VENETO
+('Mercatino di Piazza dei Signori', 'Mercatino dell''antiquariato nel cuore di Vicenza, ogni seconda domenica del mese. Cornice rinascimentale, espositori selezionati, specializzati in ceramiche venete, vetri di Murano, argenterie e libri antichi.', 'Vicenza', 'Veneto', 'Piazza dei Signori', 45.5485, 11.5452, NULL, NULL, 'mensile', 'Seconda domenica del mese', ARRAY['Ceramiche','Arte','Libri','Gioielli'], 'https://images.unsplash.com/photo-1569144157591-c60f3f82f137?w=800&q=80', false, false, 4.2, 31),
+
+('Re Artu'' Vintage Market', 'Il mercato vintage più grande del Veneto, a Padova. Ogni mese porta in piazza decine di espositori specializzati in abbigliamento vintage, vinili, fotografie e oggetti da collezione. Ingresso libero, atmosfera informale.', 'Padova', 'Veneto', 'Prato della Valle', 45.3984, 11.8758, NULL, '@reartupadova', 'mensile', 'Terzo weekend del mese', ARRAY['Abbigliamento','Vinili','Fotografia','Accessori'], 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=80', false, true, 4.3, 52),
+
+-- EMILIA-ROMAGNA
+('Mercatino dell''Antiquariato di Modena', 'Quarta domenica del mese in Piazza Grande, con oltre 200 espositori. Specializzato in automobili d''epoca, memorabilia motor sport, ma anche libri, stampe e oggetti del Novecento. La patria della Motor Valley riflessa nel suo mercatino.', 'Modena', 'Emilia-Romagna', 'Piazza Grande', 44.6467, 10.9252, NULL, NULL, 'mensile', 'Quarta domenica del mese', ARRAY['Arte','Libri','Oggetti da cucina','Fotografia'], 'https://images.unsplash.com/photo-1513135467880-6c41603b3571?w=800&q=80', false, false, 4.0, 28),
+
+-- SICILIA
+('Mercato di Ballarò', 'Uno dei mercati storici più affascinanti d''Italia, a Palermo. Non è un mercatino vintage nel senso classico, ma tra le bancarelle di frutta, pesce e spezie si trovano pezzi d''antiquariato, ceramiche di Caltagirone e oggetti di artigianato siciliano.', 'Palermo', 'Sicilia', 'Piazza del Carmine, Albergheria', 38.1122, 13.3571, NULL, NULL, 'settimanale', 'Tutti i giorni tranne domenica pomeriggio', ARRAY['Ceramiche','Oggetti da cucina','Arte'], 'https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?w=800&q=80', false, false, 4.5, 76),
+
+-- CAMPANIA
+('Fiera Antiquaria di Napoli', 'Ogni terza settimana del mese, la Villa Comunale di Napoli ospita oltre 150 espositori di antiquariato, oggetti vintage e collezionismo. Vista sul Golfo, bancarelle tra i pini marittimi. Specializzata in stampe napoletane, presepi antichi e maioliche.', 'Napoli', 'Campania', 'Villa Comunale, Riviera di Chiaia', 40.8358, 14.2437, NULL, NULL, 'mensile', 'Ogni terzo weekend del mese', ARRAY['Arte','Ceramiche','Libri','Gioielli'], 'https://images.unsplash.com/photo-1552422535-c45813c61732?w=800&q=80', false, false, 4.1, 39);
+
+-- ============================================================
+-- NEGOZI DI ESEMPIO
+-- ============================================================
+INSERT INTO public.shops (name, description, city, region, address, website, instagram, phone, categories, image_url, opening_hours, is_verified, is_featured, avg_rating, review_count, plan) VALUES
+
+('Cavalli e Nastri', 'Uno dei negozi vintage più iconici di Milano. Tre piani di abbigliamento selezionato degli anni ''50–''90, accessori, borse e scarpe. Prezzi non economici ma selezione impeccabile. Da non perdere il piano interrato con gli abiti da sera.', 'Milano', 'Lombardia', 'Via Brera 2', 'https://cavallienastri.com', '@cavallienastri', '+39 02 7200 0449', ARRAY['Abbigliamento','Accessori','Borse','Scarpe'], 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', '{"mon":"10:30-19:30","tue":"10:30-19:30","wed":"10:30-19:30","thu":"10:30-19:30","fri":"10:30-19:30","sat":"10:30-19:30","sun":"chiuso"}', true, true, 4.6, 88, 'premium'),
+
+('Pifebo Vintage Store', 'Negozio vintage a Roma nel quartiere Pigneto. Curatissimo, specializzato in anni ''70 e ''80: camicie, jeans, magliette grafiche, giubbotti in pelle. Prezzi accessibili, personale preparato. Uno dei migliori a Roma.', 'Roma', 'Lazio', 'Via del Pigneto 91', NULL, '@pifebo', '+39 06 2153 1987', ARRAY['Abbigliamento','Accessori'], 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800&q=80', '{"tue":"11:00-20:00","wed":"11:00-20:00","thu":"11:00-20:00","fri":"11:00-20:00","sat":"11:00-20:00","sun":"14:00-20:00"}', true, true, 4.5, 63, 'premium'),
+
+('Vintage Delirium', 'Negozio storico di Firenze, fondato negli anni ''90. Specializzato in haute couture vintage: Versace, Missoni, Roberto Cavalli, Krizia. Più simile a una galleria d''arte che a un negozio. I pezzi sono esposti come opere, con schede che ne raccontano la provenienza.', 'Firenze', 'Toscana', 'Via dei Serragli 88r', 'https://vintagedelirium.com', '@vintage_delirium', NULL, ARRAY['Abbigliamento','Accessori','Gioielli'], 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80', '{"mon":"15:30-19:30","tue":"10:00-13:30","wed":"10:00-13:30","thu":"10:00-13:30","fri":"10:00-13:30","sat":"10:00-13:30","sun":"chiuso"}', true, false, 4.8, 41, 'free'),
+
+('Mercatino Vintage Torino', 'Negozio fisso nel cuore di Torino, Quadrilatero Romano. Abbigliamento dagli anni ''60 ai ''90, con una sezione speciale dedicata ai vinili e alle riviste vintage. Ottimo rapporto qualità-prezzo.', 'Torino', 'Piemonte', 'Via della Consolata 10', NULL, '@mercatinovintagetorino', NULL, ARRAY['Abbigliamento','Vinili','Libri'], 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&q=80', '{"mon":"chiuso","tue":"11:00-19:00","wed":"11:00-19:00","thu":"11:00-19:00","fri":"11:00-19:30","sat":"10:30-19:30","sun":"15:00-19:00"}', false, false, 4.2, 27, 'free');
