@@ -1,26 +1,25 @@
 from __future__ import annotations
 """
-Web search scraper v2 — duckduckgo-search + Claude Haiku.
+Web search scraper v2 — duckduckgo-search + estrazione rule-based.
 
-Pipeline per ogni query:
-  1. DDGS.text() → risultati DDG puliti, nessun parsing HTML
-  2. Claude Haiku → estrae eventi strutturati da titoli + snippet
-  3. Per URL di calendari/aggregatori → fetch pagina intera + Claude estrazione
+Migliorie rispetto alla v1:
+  - duckduckgo-search: libreria Python dedicata, nessun parsing HTML fragile
+  - BeautifulSoup per estrarre testo pulito dalle pagine
+  - Estrazione rule-based migliorata: più pattern di data, tipo evento, città
 
-Vantaggi rispetto alla v1:
-  - duckduckgo-search è una libreria dedicata, robusta e aggiornata
-  - Claude Haiku capisce il linguaggio naturale: date scritte in parole,
-    ricorrenze ("ogni prima domenica"), varianti regionali — tutto gestito
-  - Nessuna regex fragile che si rompe al cambio layout
+Opzione AI (Claude Haiku ~€0.60/mese) disponibile ma disabilitata per ora.
+Vedi memory: project_vintagery_ai_scraper.md
 """
 import re
 import time
-import json
-import os
-import requests
+import unicodedata
+from datetime import date
 from typing import Generator
-from duckduckgo_search import DDGS
+from urllib.parse import urlparse
+
+import requests
 from bs4 import BeautifulSoup
+from duckduckgo_search import DDGS
 
 from ..regions import REGION_CITIES, REGION_LOCAL_SITES, city_to_region
 
@@ -29,10 +28,16 @@ MONTH_NAMES_IT = [
     'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
 ]
 
+MONTHS_IT = {
+    'gen': 1, 'gennaio': 1, 'feb': 2, 'febbraio': 2, 'mar': 3, 'marzo': 3,
+    'apr': 4, 'aprile': 4, 'mag': 5, 'maggio': 5, 'giu': 6, 'giugno': 6,
+    'lug': 7, 'luglio': 7, 'ago': 8, 'agosto': 8, 'set': 9, 'settembre': 9,
+    'ott': 10, 'ottobre': 10, 'nov': 11, 'novembre': 11, 'dic': 12, 'dicembre': 12,
+}
+
 # ── Query templates ────────────────────────────────────────────────────────
 
 REGION_TEMPLATES = [
-    # Aggregatori e ricerca generale
     'mercatini antiquariato {region} {month} {year}',
     'mercatino vintage {region} {month} {year}',
     'svuotacantine {region} {month} {year}',
@@ -41,27 +46,22 @@ REGION_TEMPLATES = [
     'mercato vinile dischi {region} {month} {year}',
     'fumetti vintage {region} {month} {year}',
     'mercatino usato {region} {month} {year}',
-    # Ricorrenti mensili
     '{region} mercatino antiquariato ogni domenica {year}',
-    '{region} fiera antiquariato prima domenica mese {year}',
+    '{region} fiera antiquariato prima domenica mese',
     '{region} mercatino vintage ricorrente mensile',
-    # Social (indicizzati da DDG)
     'site:facebook.com mercatino vintage {region} {month} {year}',
     'site:facebook.com svuotacantine {region} {month} {year}',
-    'site:facebook.com fiera antiquariato {region} {month}',
     'site:instagram.com mercatino antiquariato {region} {month}',
     'tiktok mercatino vintage {region} {year}',
-    'tiktok svuotacantina {region}',
-    # Aggregatori specializzati
     'site:eventbrite.it antiquariato vintage {region} {month} {year}',
     'site:eventiesagre.it {region} {month} {year}',
     'site:fierionline.it {region} {month} {year}',
     'site:mercatinousato.it {region} mercatino',
-    # Inglese (eventi internazionali / expat)
     'vintage market antique fair {region} {month} {year}',
-    # Giornali locali
     'mercatino antiquariato {region} {year} notizie',
     'vintage {region} {month} {year} evento',
+    '{region} mercato antiquariato sabato domenica {month} {year}',
+    'collezionismo fumetti vinile {region} {month} {year}',
 ]
 
 CITY_TEMPLATES = [
@@ -72,191 +72,232 @@ CITY_TEMPLATES = [
     'mercato vinile {city} {month} {year}',
 ]
 
-# URL da cui conviene scaricare la pagina completa (calendari eventi)
+# Siti da cui vale la pena scaricare la pagina completa
 CALENDAR_DOMAINS = {
     'eventiesagre.it', 'fierionline.it', 'mercatinousato.it',
-    'eventbrite.it', 'cosafareintoscana.it', 'turismoroma.it',
+    'eventbrite.it', 'cosafareintoscana.it',
     'emiliaromagnaturismo.it', 'visittuscany.com',
+    'turismo.intoscana.it', 'turismoroma.it',
 }
 
 EVENT_KEYWORDS = {
-    'mercatino', 'mercato', 'antiquariato', 'vintage', 'svuotacantina', 'svendita',
-    'fiera', 'collezionismo', 'vinile', 'dischi', 'fumetti', 'bancarelle',
-    'espositori', 'usato', 'rigattiere', 'seconda mano', 'brocante',
+    'mercatino', 'mercato', 'antiquariato', 'vintage', 'svuotacantina',
+    'svendita', 'fiera', 'collezionismo', 'vinile', 'dischi', 'fumetti',
+    'bancarelle', 'espositori', 'usato', 'rigattiere', 'brocante',
 }
 
-# ── Prompt per Claude Haiku ───────────────────────────────────────────────
-
-_PROMPT = """\
-Sei un esperto di mercatini vintage italiani. Analizza il testo seguente e \
-estrai TUTTI gli eventi di mercatini, fiere antiquariato, svuotacantine, \
-fiere del vinile/dischi, fumetti, collezionismo che si trovano nella \
-regione {region} per {month} {year}.
-
-TESTO:
-{content}
-
-Rispondi SOLO con un array JSON (nessun altro testo). Schema:
-[{{
-  "name": "nome evento",
-  "city": "città",
-  "start_date": "YYYY-MM-DD",
-  "end_date": "YYYY-MM-DD o null",
-  "start_time": "HH:MM o null",
-  "end_time": "HH:MM o null",
-  "event_type": "antiquariato|mercatino|svuotacantina|vinile|fumetti|collezionismo|altro",
-  "is_recurring": true o false,
-  "address": "indirizzo completo o null",
-  "price_info": "es. ingresso libero, 5€ o null",
-  "organizer": "nome organizzatore o null",
-  "description": "1-2 frasi descrittive"
-}}]
-
-Regole:
-- Solo eventi REALI trovati nel testo, mai inventare
-- Domeniche {month} {year}: se mese=giugno usa 7,14,21,28; luglio usa 5,12,19,26
-- Per ricorrenze ("ogni prima domenica") calcola la data corretta
-- Se la data non è chiara ma l'evento è reale, ometti start_date (null)
-- Se non trovi eventi scrivi []
-"""
+SERVICE_EXCLUDE = {
+    'sgombero', 'ritiro mobili', 'svuotiamo gratuitamente',
+    'preventivo gratuito', 'numero verde', 'smaltimento', 'trasloco',
+}
 
 
-# ── Funzioni di supporto ──────────────────────────────────────────────────
+# ── DDG search ────────────────────────────────────────────────────────────
 
 def _ddg_search(query: str, max_results: int = 10) -> list[dict]:
-    """Cerca su DDG con la libreria ufficiale — nessun parsing HTML."""
+    """Cerca su DuckDuckGo con la libreria ufficiale — nessun parsing HTML."""
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(
-                query,
-                region='it-it',
-                max_results=max_results,
-            ))
+            results = list(ddgs.text(query, region='it-it', max_results=max_results))
         time.sleep(1.0)
         return results  # [{title, href, body}]
     except Exception as e:
-        print(f'[websearch] DDG error "{query[:60]}": {e}')
+        print(f'[websearch] DDG "{query[:55]}": {e}')
         time.sleep(3)
         return []
 
 
+# ── Page fetch ────────────────────────────────────────────────────────────
+
 def _fetch_page(url: str) -> str:
-    """Scarica una pagina e restituisce il testo pulito (max 6000 char)."""
+    """Scarica una pagina e restituisce testo pulito (max 8000 char)."""
     try:
         headers = {
             'User-Agent': (
                 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/124.0.0.0 Safari/537.36'
+                'AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36'
             ),
-            'Accept-Language': 'it-IT,it;q=0.9,en;q=0.5',
+            'Accept-Language': 'it-IT,it;q=0.9',
         }
         resp = requests.get(url, headers=headers, timeout=12)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, 'html.parser')
-        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe']):
             tag.decompose()
         text = soup.get_text(separator=' ', strip=True)
-        text = re.sub(r'\s+', ' ', text)
-        return text[:6000]
+        return re.sub(r'\s+', ' ', text)[:8000]
     except Exception as e:
-        print(f'[websearch] fetch error {url[:60]}: {e}')
+        print(f'[websearch] fetch {url[:55]}: {e}')
         return ''
 
 
 def _is_calendar_url(url: str) -> bool:
-    """True se l'URL è un sito di calendari eventi — vale la pena scaricare."""
-    return any(d in url for d in CALENDAR_DOMAINS)
+    try:
+        domain = urlparse(url).netloc.lstrip('www.')
+        return any(d in domain for d in CALENDAR_DOMAINS)
+    except Exception:
+        return False
 
 
-def _has_event_keywords(text: str) -> bool:
+# ── Estrazione eventi ─────────────────────────────────────────────────────
+
+def _is_relevant(text: str) -> bool:
     t = text.lower()
+    if any(ex in t for ex in SERVICE_EXCLUDE):
+        return False
     return any(kw in t for kw in EVENT_KEYWORDS)
 
 
-def _extract_with_ai(
-    content: str,
-    region: str,
-    month_name: str,
-    year: int,
-    source_url: str,
-) -> list[dict]:
-    """
-    Usa Claude Haiku per estrarre eventi strutturati dal contenuto.
-    Fallback a lista vuota se API non disponibile.
-    """
-    api_key = os.environ.get('ANTHROPIC_API_KEY')
-    if not api_key or not content.strip():
+def _guess_type(text: str) -> str:
+    t = text.lower()
+    if 'svuotacantina' in t:              return 'svuotacantina'
+    if 'svendita' in t:                   return 'svendita'
+    if 'fumetti' in t:                    return 'fumetti'
+    if 'vinile' in t or 'dischi' in t:   return 'vinile'
+    if 'collezion' in t:                  return 'collezionismo'
+    if 'antiquariato' in t:               return 'antiquariato'
+    if 'vintage' in t:                    return 'mercatino'
+    return 'mercatino'
+
+
+def _parse_date(text: str, target_year: int, target_month: int) -> str | None:
+    t = text.lower()
+
+    # dd/mm/yyyy o dd-mm-yyyy
+    m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{4})', t)
+    if m:
+        d, mo, yr = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if 1 <= d <= 31 and 1 <= mo <= 12:
+            return f'{yr:04d}-{mo:02d}-{d:02d}'
+
+    # ISO yyyy-mm-dd
+    m = re.search(r'(\d{4})-(\d{2})-(\d{2})', t)
+    if m:
+        return m.group(0)
+
+    # "31 giugno 2026" / "sabato 14 giugno"
+    m = re.search(
+        r'(?:lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)?'
+        r'\s*(\d{1,2})\s+([a-zà-ú]{3,9})(?:\s+(\d{4}))?', t
+    )
+    if m:
+        day = int(m.group(1))
+        mo  = MONTHS_IT.get(m.group(2)[:3])
+        yr  = int(m.group(3)) if m.group(3) else target_year
+        if mo and 1 <= day <= 31 and mo == target_month:
+            return f'{yr:04d}-{mo:02d}-{day:02d}'
+
+    # "giugno 2026" → primo del mese
+    m = re.search(r'\b([a-zà-ú]{4,9})\s+(\d{4})\b', t)
+    if m:
+        mo = MONTHS_IT.get(m.group(1)[:3])
+        yr = int(m.group(2))
+        if mo and mo == target_month and yr == target_year:
+            return f'{yr:04d}-{mo:02d}-01'
+
+    # "a giugno" / "in giugno"
+    m = re.search(r'\b(?:a|in|nel mese di|per)\s+([a-zà-ú]{4,9})\b', t)
+    if m:
+        mo = MONTHS_IT.get(m.group(1)[:3])
+        if mo and mo == target_month:
+            return f'{target_year:04d}-{mo:02d}-01'
+
+    return None
+
+
+def _extract_events(text: str, source_url: str, target_year: int, target_month: int,
+                    default_city: str, region: str) -> list[dict]:
+    """Estrae eventi da un blocco di testo con pattern matching."""
+    if not _is_relevant(text):
         return []
-    try:
-        from anthropic import Anthropic
-        client = Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model='claude-haiku-4-5-20251001',
-            max_tokens=2048,
-            messages=[{
-                'role': 'user',
-                'content': _PROMPT.format(
-                    region=region,
-                    month=month_name,
-                    year=year,
-                    content=content,
-                ),
-            }],
-        )
-        raw = message.content[0].text.strip()
-        start = raw.find('[')
-        end   = raw.rfind(']') + 1
-        if start == -1 or end == 0:
-            return []
-        events = json.loads(raw[start:end])
-        for ev in events:
-            ev['source_url'] = source_url
-            ev['region']     = region
-        return events
-    except Exception as e:
-        print(f'[websearch] AI extraction error: {e}')
-        return []
 
+    events = []
+    seen_names: set[str] = set()
 
-def _normalize_event(ev: dict, region: str, source_url: str) -> dict | None:
-    """Normalizza e valida un evento estratto da Claude."""
-    name = (ev.get('name') or '').strip()
-    city = (ev.get('city') or '').strip()
-    if not name or len(name) < 5:
-        return None
+    # Prova a estrarre blocchi strutturati (article, div evento, ecc.)
+    blocks = re.split(r'\n{2,}|(?<=[.!?])\s{2,}', text)
+    if len(blocks) < 3:
+        blocks = [text[:3000]]
 
-    # Valida data (può essere null)
-    start_date = ev.get('start_date')
-    if start_date:
+    for block in blocks[:25]:
+        block = block.strip()
+        if len(block) < 20 or not _is_relevant(block):
+            continue
+
+        start_date = _parse_date(block, target_year, target_month)
+        if not start_date:
+            continue
+
         try:
-            from datetime import date as _date
-            _date.fromisoformat(start_date)
-        except (ValueError, TypeError):
-            start_date = None
+            d = date.fromisoformat(start_date)
+            if d.month != target_month or d.year != target_year:
+                continue
+        except ValueError:
+            continue
 
-    return {
-        'name':        name[:150],
-        'description': (ev.get('description') or '')[:400],
-        'event_type':  ev.get('event_type', 'mercatino'),
-        'city':        city or region,
-        'region':      region,
-        'address':     ev.get('address'),
-        'start_date':  start_date,
-        'end_date':    ev.get('end_date'),
-        'start_time':  ev.get('start_time'),
-        'end_time':    ev.get('end_time'),
-        'website':     source_url,
-        'instagram':   None,
-        'price_info':  ev.get('price_info'),
-        'organizer':   ev.get('organizer'),
-        'source_url':  source_url,
-        'is_verified': False,
-        'is_featured': False,
-        'is_recurring': bool(ev.get('is_recurring', False)),
-        'categories':  [],
-        'tags':        ['websearch-v2', 'ai-extracted'],
-    }
+        # Nome evento: prima riga significativa
+        lines = [l.strip() for l in block.split('\n') if len(l.strip()) > 8]
+        name = lines[0][:120] if lines else block[:80]
+        name = re.sub(r'\s+', ' ', name).rstrip('.,:-')
+
+        if name in seen_names or len(name) < 8:
+            continue
+        seen_names.add(name)
+
+        # Città: cerca pattern "a Milano", "in via X, Bologna"
+        city_m = re.search(
+            r'\b(Milano|Roma|Torino|Napoli|Bologna|Firenze|Venezia|Genova|'
+            r'Bari|Palermo|Catania|Verona|Padova|Brescia|Bergamo|Trieste|'
+            r'Parma|Modena|Arezzo|Siena|Lucca|Perugia|Cagliari|Salerno|'
+            r'Lecce|Pescara|Ancona|Reggio\s+Calabria|Matera|Trento|Aosta|'
+            r'Pisa|Livorno|Pistoia|Prato|Grosseto|Ravenna|Rimini|Ferrara|'
+            r'Sassari|Nuoro|Oristano|Taranto|Foggia|Brindisi|Potenza|'
+            r'Campobasso|Cosenza|Catanzaro|Vibo\s+Valentia|Crotone|'
+            r'Udine|Pordenone|Gorizia|Bolzano|Rovereto)\b',
+            block, re.IGNORECASE
+        )
+        city = city_m.group(1) if city_m else default_city
+
+        # Orario
+        time_m = re.search(r'(?:ore|dalle)\s+(\d{1,2})[:\.](\d{2})', block, re.IGNORECASE)
+        start_time = f'{int(time_m.group(1)):02d}:{time_m.group(2)}' if time_m else None
+
+        # Prezzo
+        price_m = re.search(r'(?:ingresso|entrata|ticket)[:\s]*([^\.\n]{3,40})', block, re.IGNORECASE)
+        price_info = price_m.group(1).strip() if price_m else None
+        if re.search(r'\bgratuito\b|\bgratis\b|\bfree\b|\blibero\b', block, re.IGNORECASE):
+            price_info = 'Ingresso gratuito'
+
+        # Indirizzo
+        addr_m = re.search(
+            r'(?:via|piazza|corso|viale|largo|borgo)\s+[A-Za-zÀ-ú][A-Za-zÀ-ú\s]{2,30}(?:,\s*\d+)?',
+            block, re.IGNORECASE
+        )
+
+        events.append({
+            'name':        name,
+            'description': block[:350].strip(),
+            'event_type':  _guess_type(block),
+            'city':        city,
+            'region':      region,
+            'address':     addr_m.group(0).strip() if addr_m else None,
+            'start_date':  start_date,
+            'end_date':    None,
+            'start_time':  start_time,
+            'end_time':    None,
+            'website':     source_url,
+            'instagram':   None,
+            'price_info':  price_info,
+            'organizer':   None,
+            'source_url':  source_url,
+            'is_verified': False,
+            'is_featured': False,
+            'is_recurring': bool(re.search(r'ogni\s+(?:prima|seconda|terza|ultima|domenica|sabato|mese)', block, re.IGNORECASE)),
+            'categories':  [],
+            'tags':        ['websearch-v2', urlparse(source_url).netloc.lstrip('www.')],
+        })
+
+    return events
 
 
 # ── Entry point ───────────────────────────────────────────────────────────
@@ -266,92 +307,73 @@ def scrape(
     target_month: int,
     region: str | None = None,
 ) -> Generator[dict, None, None]:
-    """
-    Se `region` è specificata: ricerca esaustiva solo per quella regione.
-    Altrimenti: fallback legacy (rotazione regioni).
-    """
     month_name = MONTH_NAMES_IT[target_month]
     seen_events: set[str] = set()
     seen_urls:   set[str] = set()
 
-    def _yield_from_content(content: str, source_url: str) -> Generator[dict, None, None]:
-        """Estrae eventi dal contenuto con Claude e li yield."""
-        if not _has_event_keywords(content):
-            return
-        events = _extract_with_ai(content, region or 'Italia', month_name, target_year, source_url)
-        for raw in events:
-            ev = _normalize_event(raw, region or 'Italia', source_url)
-            if not ev:
-                continue
-            key = f"{ev['name'].lower()[:40]}|{ev.get('start_date', '')}|{ev['city'].lower()}"
-            if key in seen_events:
-                continue
-            seen_events.add(key)
-            yield ev
+    def _default_city(reg: str) -> str:
+        cities = REGION_CITIES.get(reg, [])
+        return cities[0] if cities else reg
 
-    def _process_ddg_results(results: list[dict]) -> Generator[dict, None, None]:
-        """
-        1. Aggrega tutti i snippet di una query → Claude estrae eventi
-        2. Per URL di calendari → scarica pagina intera → Claude estrae
-        """
-        if not results:
-            return
-
-        # Fase 1: estrazione da titoli + snippet aggregati
-        combined = '\n\n'.join(
-            f"Fonte: {r.get('href', '')}\nTitolo: {r.get('title', '')}\nAnteprima: {r.get('body', '')}"
-            for r in results if r.get('title')
-        )
-        if combined:
-            yield from _yield_from_content(combined, 'duckduckgo-search')
-
-        # Fase 2: fetch pagine complete dei siti calendario
+    def _process_results(results: list[dict], reg: str) -> Generator[dict, None, None]:
+        city = _default_city(reg)
         for r in results:
-            url = r.get('href', '')
-            if not url or url in seen_urls:
+            url     = r.get('href', '')
+            title   = r.get('title', '')
+            snippet = r.get('body', '')
+            combined = f'{title} {snippet}'
+
+            if not _is_relevant(combined):
                 continue
-            if _is_calendar_url(url):
+
+            # Estrai da snippet
+            for ev in _extract_events(combined, url or 'duckduckgo', target_year, target_month, city, reg):
+                key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')}|{ev['city'].lower()}"
+                if key not in seen_events:
+                    seen_events.add(key)
+                    yield ev
+
+            # Fetch pagina completa per siti calendario
+            if url and url not in seen_urls and _is_calendar_url(url):
                 seen_urls.add(url)
                 page_text = _fetch_page(url)
-                if page_text:
-                    yield from _yield_from_content(page_text, url)
+                for ev in _extract_events(page_text, url, target_year, target_month, city, reg):
+                    key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')}|{ev['city'].lower()}"
+                    if key not in seen_events:
+                        seen_events.add(key)
+                        yield ev
                 time.sleep(0.8)
 
     if region:
         # ── Modalità regione specifica ─────────────────────────────────
         cities = REGION_CITIES.get(region, [])
 
-        # Fase 1: query per regione
         for template in REGION_TEMPLATES:
-            query = template.format(region=region, month=month_name, year=target_year)
+            query   = template.format(region=region, month=month_name, year=target_year)
             results = _ddg_search(query)
-            yield from _process_ddg_results(results)
+            yield from _process_results(results, region)
 
-        # Fase 2: query per ogni città della regione
         for city in cities:
             for template in CITY_TEMPLATES:
-                query = template.format(city=city, month=month_name, year=target_year)
+                query   = template.format(city=city, month=month_name, year=target_year)
                 results = _ddg_search(query)
-                yield from _process_ddg_results(results)
+                yield from _process_results(results, region)
 
-        # Fase 3: siti locali regionali (giornali, pro loco, turismo)
         for site in REGION_LOCAL_SITES.get(region, []):
-            query = f'site:{site} mercatino antiquariato vintage {month_name} {target_year}'
+            query   = f'site:{site} mercatino antiquariato vintage {month_name} {target_year}'
             results = _ddg_search(query)
-            yield from _process_ddg_results(results)
+            yield from _process_results(results, region)
 
     else:
         # ── Modalità legacy: rotazione regioni ────────────────────────
         from ..regions import ITALIAN_REGIONS
         offset = (target_month - 1) % 4
-        batch  = ITALIAN_REGIONS[offset * 5:(offset + 1) * 5]
-        for reg in batch:
-            cities = REGION_CITIES.get(reg, [])[:3]
-            for template in REGION_TEMPLATES[:6]:
-                query = template.format(region=reg, month=month_name, year=target_year)
+        for reg in ITALIAN_REGIONS[offset * 5:(offset + 1) * 5]:
+            for template in REGION_TEMPLATES[:8]:
+                query   = template.format(region=reg, month=month_name, year=target_year)
                 results = _ddg_search(query)
-                yield from _process_ddg_results(results)
-            for city in cities:
-                query = f'mercatino antiquariato {city} {month_name} {target_year}'
+                yield from _process_results(results, reg)
+            for city in REGION_CITIES.get(reg, [])[:3]:
+                query   = f'mercatino antiquariato {city} {month_name} {target_year}'
                 results = _ddg_search(query)
-                yield from _process_ddg_results(results)
+                yield from _process_results(results, reg)
