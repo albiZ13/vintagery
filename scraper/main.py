@@ -10,6 +10,9 @@ Usage:
 """
 import os
 import re
+import warnings
+warnings.filterwarnings('ignore', message='.*deprecated.*auto_match.*')
+warnings.filterwarnings('ignore', message='.*auto_match.*deprecated.*')
 import unicodedata
 import argparse
 from datetime import datetime
