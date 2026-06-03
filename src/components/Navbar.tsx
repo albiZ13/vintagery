@@ -10,8 +10,8 @@ import GlobalSearch from '@/components/GlobalSearch'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const NAV = [
-  { href: '/home',   label: 'Mercatini ed eventi', icon: Calendar },
-  { href: '/negozi', label: 'Negozi' },
+  { href: '/mercatini', label: 'Mercatini ed eventi', icon: Calendar },
+  { href: '/negozi',    label: 'Negozi' },
 ]
 
 
@@ -86,7 +86,7 @@ export default function Navbar() {
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
               className={cn('text-body-sm font-medium transition-colors flex items-center gap-1',
-                (pathname === href || (href === '/home' && pathname.startsWith('/mercatini')))
+                (pathname === href || pathname.startsWith(href + '/') || (href === '/mercatini' && pathname === '/home'))
                   ? 'text-sienna' : 'text-coffee hover:text-sienna')}>
               {Icon && <Icon size={14} />}{label}
             </Link>

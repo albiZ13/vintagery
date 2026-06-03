@@ -41,7 +41,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (user && (path === '/' || path === '/auth/login' || path === '/auth/register')) {
-    return NextResponse.redirect(new URL('/home', req.url))
+    return NextResponse.redirect(new URL('/mercatini', req.url))
   }
 
   return res
