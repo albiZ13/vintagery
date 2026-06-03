@@ -11,6 +11,10 @@ const PUBLIC = [
   '/about',
   '/termini',
   '/privacy',
+  '/mercatini',
+  '/negozi',
+  '/mappa',
+  '/per-i-negozi',
 ]
 
 export async function middleware(req: NextRequest) {
