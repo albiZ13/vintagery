@@ -74,6 +74,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          ANTHROPIC_API_KEY:             ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Fonti condivise — ${{ needs.setup.outputs.month2 }}/${{ needs.setup.outputs.year2 }}
         run: |
@@ -86,6 +87,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          ANTHROPIC_API_KEY:             ${{ secrets.ANTHROPIC_API_KEY }}
 
   # ── 20 websearch regionali in parallelo ──────────────────────────────────
   # Solo websearch: l'unica fonte che fa ricerche mirate per regione.
@@ -144,6 +146,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          ANTHROPIC_API_KEY:             ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Websearch ${{ matrix.region }} — ${{ needs.setup.outputs.month2 }}/${{ needs.setup.outputs.year2 }}
         run: |
@@ -157,6 +160,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          ANTHROPIC_API_KEY:             ${{ secrets.ANTHROPIC_API_KEY }}
 
   # ── Riepilogo ────────────────────────────────────────────────────────────
   summary:

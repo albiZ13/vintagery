@@ -1,14 +1,13 @@
 from __future__ import annotations
 """
-Web search scraper v2 — duckduckgo-search + estrazione rule-based.
+Web search scraper v2 — duckduckgo-search + Claude Haiku + estrazione rule-based.
 
-Migliorie rispetto alla v1:
-  - duckduckgo-search: libreria Python dedicata, nessun parsing HTML fragile
-  - BeautifulSoup per estrarre testo pulito dalle pagine
-  - Estrazione rule-based migliorata: più pattern di data, tipo evento, città
-
-Opzione AI (Claude Haiku ~€0.60/mese) disponibile ma disabilitata per ora.
-Vedi memory: project_vintagery_ai_scraper.md
+Pipeline:
+  1. duckduckgo-search: query DDG con libreria dedicata (nessun parsing HTML)
+  2. Estrazione rule-based: regex veloci su snippet e pagine calendario
+  3. Claude Haiku: estrazione AI su contenuto pagine — capisce date in parole,
+     ricorrenze mensili, testi ambigui, social, articoli locali
+     Costo ~€0.13/settimana per 20 regioni.
 """
 import re
 import time
@@ -17,6 +16,8 @@ from datetime import date
 from typing import Generator
 from urllib.parse import urlparse
 
+import json
+import os
 import requests
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
@@ -90,6 +91,69 @@ SERVICE_EXCLUDE = {
     'sgombero', 'ritiro mobili', 'svuotiamo gratuitamente',
     'preventivo gratuito', 'numero verde', 'smaltimento', 'trasloco',
 }
+
+
+# ── Claude Haiku extraction ───────────────────────────────────────────────
+
+_PROMPT = """\
+Sei un esperto di mercatini vintage italiani. Analizza il testo e estrai \
+TUTTI gli eventi di mercatini, fiere antiquariato, svuotacantine, vinile, \
+fumetti, collezionismo nella regione {region} per {month} {year}.
+
+TESTO:
+{content}
+
+Rispondi SOLO con un array JSON (nessun altro testo):
+[{{
+  "name": "nome evento",
+  "city": "città",
+  "start_date": "YYYY-MM-DD o null",
+  "end_date": "YYYY-MM-DD o null",
+  "start_time": "HH:MM o null",
+  "end_time": "HH:MM o null",
+  "event_type": "antiquariato|mercatino|svuotacantina|vinile|fumetti|collezionismo|altro",
+  "is_recurring": true o false,
+  "address": "indirizzo o null",
+  "price_info": "es. ingresso libero o null",
+  "organizer": "nome o null",
+  "description": "1-2 frasi"
+}}]
+
+Regole:
+- Solo eventi REALI trovati nel testo, mai inventare
+- Domeniche giugno 2026: 7,14,21,28 — luglio: 5,12,19,26
+- Per "prima domenica del mese" calcola la data corretta
+- Se non ci sono eventi scrivi []
+"""
+
+
+def _extract_with_ai(content: str, region: str, month_name: str,
+                     year: int, source_url: str) -> list[dict]:
+    """Claude Haiku estrae eventi strutturati dal testo."""
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key or not content.strip():
+        return []
+    try:
+        from anthropic import Anthropic
+        msg = Anthropic(api_key=api_key).messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=2048,
+            messages=[{'role': 'user', 'content': _PROMPT.format(
+                region=region, month=month_name, year=year, content=content[:5000]
+            )}],
+        )
+        raw = msg.content[0].text.strip()
+        start, end = raw.find('['), raw.rfind(']') + 1
+        if start == -1 or end == 0:
+            return []
+        events = json.loads(raw[start:end])
+        for ev in events:
+            ev['source_url'] = source_url
+            ev['region'] = region
+        return events
+    except Exception as e:
+        print(f'[websearch] AI error: {e}')
+        return []
 
 
 # ── DDG search ────────────────────────────────────────────────────────────
@@ -315,34 +379,86 @@ def scrape(
         cities = REGION_CITIES.get(reg, [])
         return cities[0] if cities else reg
 
+    def _norm_ev(raw: dict, reg: str, src: str) -> dict | None:
+        name = (raw.get('name') or '').strip()
+        if not name or len(name) < 5:
+            return None
+        sd = raw.get('start_date')
+        if sd:
+            try:
+                date.fromisoformat(sd)
+            except (ValueError, TypeError):
+                sd = None
+        return {
+            'name':        name[:150],
+            'description': (raw.get('description') or '')[:400],
+            'event_type':  raw.get('event_type', 'mercatino'),
+            'city':        (raw.get('city') or _default_city(reg))[:80],
+            'region':      reg,
+            'address':     raw.get('address'),
+            'start_date':  sd,
+            'end_date':    raw.get('end_date'),
+            'start_time':  raw.get('start_time'),
+            'end_time':    raw.get('end_time'),
+            'website':     src,
+            'instagram':   None,
+            'price_info':  raw.get('price_info'),
+            'organizer':   raw.get('organizer'),
+            'source_url':  src,
+            'is_verified': False,
+            'is_featured': False,
+            'is_recurring': bool(raw.get('is_recurring', False)),
+            'categories':  [],
+            'tags':        ['websearch-v2', 'ai-extracted'],
+        }
+
+    def _yield_ai(content: str, src: str, reg: str) -> Generator[dict, None, None]:
+        for raw in _extract_with_ai(content, reg, month_name, target_year, src):
+            ev = _norm_ev(raw, reg, src)
+            if not ev:
+                continue
+            key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')[:10]}|{ev['city'].lower()}"
+            if key not in seen_events:
+                seen_events.add(key)
+                yield ev
+
     def _process_results(results: list[dict], reg: str) -> Generator[dict, None, None]:
         city = _default_city(reg)
+
+        # Aggrega tutti gli snippet in un unico testo per il batch AI
+        combined = '\n\n'.join(
+            f"URL: {r.get('href','')}\nTitolo: {r.get('title','')}\nAnteprima: {r.get('body','')}"
+            for r in results if r.get('title')
+        )
+
+        # Rule-based su snippet (veloce, gratis)
+        for ev in _extract_events(combined, 'duckduckgo', target_year, target_month, city, reg):
+            key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')[:10]}|{ev['city'].lower()}"
+            if key not in seen_events:
+                seen_events.add(key)
+                yield ev
+
+        # Claude Haiku sugli stessi snippet (cattura ciò che regex manca)
+        yield from _yield_ai(combined, 'duckduckgo', reg)
+
+        # Fetch pagine calendario + Claude estrazione completa
         for r in results:
-            url     = r.get('href', '')
-            title   = r.get('title', '')
-            snippet = r.get('body', '')
-            combined = f'{title} {snippet}'
-
-            if not _is_relevant(combined):
+            url = r.get('href', '')
+            if not url or url in seen_urls or not _is_calendar_url(url):
                 continue
-
-            # Estrai da snippet
-            for ev in _extract_events(combined, url or 'duckduckgo', target_year, target_month, city, reg):
-                key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')}|{ev['city'].lower()}"
+            seen_urls.add(url)
+            page_text = _fetch_page(url)
+            if not page_text:
+                continue
+            # Rule-based sulla pagina
+            for ev in _extract_events(page_text, url, target_year, target_month, city, reg):
+                key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')[:10]}|{ev['city'].lower()}"
                 if key not in seen_events:
                     seen_events.add(key)
                     yield ev
-
-            # Fetch pagina completa per siti calendario
-            if url and url not in seen_urls and _is_calendar_url(url):
-                seen_urls.add(url)
-                page_text = _fetch_page(url)
-                for ev in _extract_events(page_text, url, target_year, target_month, city, reg):
-                    key = f"{ev['name'][:35].lower()}|{ev.get('start_date','')}|{ev['city'].lower()}"
-                    if key not in seen_events:
-                        seen_events.add(key)
-                        yield ev
-                time.sleep(0.8)
+            # Claude sulla pagina
+            yield from _yield_ai(page_text, url, reg)
+            time.sleep(0.8)
 
     if region:
         # ── Modalità regione specifica ─────────────────────────────────
