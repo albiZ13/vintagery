@@ -12,7 +12,7 @@ import re
 from datetime import date, datetime, timedelta
 from typing import Generator
 
-from scrapling.fetchers import PlayWrightFetcher
+from scrapling.fetchers import StealthyFetcher as PlayWrightFetcher
 
 from ..regions import city_to_region
 
