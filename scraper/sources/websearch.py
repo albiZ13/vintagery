@@ -272,7 +272,7 @@ def _ddg_search(query: str) -> list[dict]:
     fetcher = StealthyFetcher()
     url = f'https://html.duckduckgo.com/html/?q={quote_plus(query)}&kl=it-it'
     try:
-        page = fetcher.fetch(url, headless=True, network_idle=True, wait=2000)
+        page = fetcher.fetch(url, headless=True, network_idle=True, wait=2000, timeout=20000)
         html = str(page.html_content) if hasattr(page, 'html_content') else ''
         if not html:
             return []
