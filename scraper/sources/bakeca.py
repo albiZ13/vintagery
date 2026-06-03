@@ -213,7 +213,7 @@ def _parse_listing_page(html: str, city_name: str, category: str,
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     seen_globally: set[str] = set()
 
     for city_slug, city_name in CITIES[:12]:  # top 12 cities to limit rate

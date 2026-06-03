@@ -48,7 +48,7 @@ def _extract_date(text: str, target_year: int) -> str | None:
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     seen_titles: set[str] = set()
 
     for search in SEARCHES:

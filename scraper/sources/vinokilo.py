@@ -63,7 +63,7 @@ def _parse_price(text: str) -> str | None:
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     # Get all event collection URLs
     try:

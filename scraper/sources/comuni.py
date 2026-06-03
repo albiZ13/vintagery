@@ -140,7 +140,7 @@ def _make_event(name: str, city: str, start_date: str, end_date: str | None = No
 def _scrape_mercatiniditalia(target_year: int, target_month: int) -> list[dict]:
     """mercatiniditalia.it — Italian mercatini/vintage directory."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
     base = 'https://www.mercatiniditalia.it'
 
     month_str = f'{target_month:02d}'
@@ -192,7 +192,7 @@ def _scrape_mercatiniditalia(target_year: int, target_month: int) -> list[dict]:
 def _scrape_eventiesagre(target_year: int, target_month: int) -> list[dict]:
     """eventiesagre.it — sagre, fiere, mercatini italiani per mese."""
     events: list[dict] = []
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
 
     month_names_it = [
         '', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
@@ -251,7 +251,7 @@ def _scrape_eventiesagre(target_year: int, target_month: int) -> list[dict]:
 def _scrape_2night(target_year: int, target_month: int) -> list[dict]:
     """2night.it — events aggregator covering all Italian cities."""
     events: list[dict] = []
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
 
     cities = [
         ('milano', 'Milano'), ('roma', 'Roma'), ('napoli', 'Napoli'),
@@ -324,7 +324,7 @@ def _scrape_2night(target_year: int, target_month: int) -> list[dict]:
 def _scrape_intoscana(target_year: int, target_month: int) -> list[dict]:
     """Regione Toscana official tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.turismo.intoscana.it/allthingstuscany/eventi/'
@@ -374,7 +374,7 @@ def _scrape_intoscana(target_year: int, target_month: int) -> list[dict]:
 def _scrape_emiliaromagna(target_year: int, target_month: int) -> list[dict]:
     """Emilia-Romagna regional tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.emiliaromagnaturismo.it/it/eventi'
@@ -410,7 +410,7 @@ def _scrape_emiliaromagna(target_year: int, target_month: int) -> list[dict]:
 def _scrape_puglia(target_year: int, target_month: int) -> list[dict]:
     """Puglia regional tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.viaggiareinpuglia.it/at/5/eventi'
@@ -459,7 +459,7 @@ def _scrape_puglia(target_year: int, target_month: int) -> list[dict]:
 def _scrape_turismoroma(target_year: int, target_month: int) -> list[dict]:
     """Rome official tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.turismoroma.it/it/eventi'
@@ -504,7 +504,7 @@ def _scrape_turismoroma(target_year: int, target_month: int) -> list[dict]:
 def _scrape_comune_firenze(target_year: int, target_month: int) -> list[dict]:
     """Municipality of Florence — official event calendar."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.comune.fi.it/agenda'
@@ -553,7 +553,7 @@ def _scrape_comune_firenze(target_year: int, target_month: int) -> list[dict]:
 def _scrape_comune_bologna(target_year: int, target_month: int) -> list[dict]:
     """Municipality of Bologna — event calendar."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.comune.bologna.it/vivere-bologna/agenda?anno={target_year}&mese={target_month:02d}'
     try:
@@ -597,7 +597,7 @@ def _scrape_comune_bologna(target_year: int, target_month: int) -> list[dict]:
 def _scrape_yesmilano(target_year: int, target_month: int) -> list[dict]:
     """YesMilano (Milan DMO) — official Milan events portal."""
     events: list[dict] = []
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
 
     url = (
         f'https://www.yesmilano.it/eventi'
@@ -648,7 +648,7 @@ def _scrape_yesmilano(target_year: int, target_month: int) -> list[dict]:
 def _scrape_venezia(target_year: int, target_month: int) -> list[dict]:
     """Venice official tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.turismovenezia.it/Venezia/Mercatini-e-fiere-6118.html'
     try:
@@ -697,7 +697,7 @@ def _scrape_venezia(target_year: int, target_month: int) -> list[dict]:
 def _scrape_piemonte(target_year: int, target_month: int) -> list[dict]:
     """Piemonte regional tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.piemonteitalia.eu/it/eventi'
@@ -745,7 +745,7 @@ def _scrape_piemonte(target_year: int, target_month: int) -> list[dict]:
 def _scrape_campania(target_year: int, target_month: int) -> list[dict]:
     """Campania / Naples events portal."""
     events: list[dict] = []
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
 
     searches = [
         ('https://www.napoliunplugged.com/category/markets', 'Napoli'),
@@ -789,7 +789,7 @@ def _scrape_campania(target_year: int, target_month: int) -> list[dict]:
 def _scrape_sicilia(target_year: int, target_month: int) -> list[dict]:
     """Sicily official tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.visitsicily.info/it/eventi/?'
@@ -822,7 +822,7 @@ def _scrape_sicilia(target_year: int, target_month: int) -> list[dict]:
 def _scrape_sardegna(target_year: int, target_month: int) -> list[dict]:
     """Sardinia official tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = (
         f'https://www.sardegnaturismo.it/it/esplora/eventi'
@@ -867,7 +867,7 @@ def _scrape_sardegna(target_year: int, target_month: int) -> list[dict]:
 def _scrape_umbria(target_year: int, target_month: int) -> list[dict]:
     """Umbria regional tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.umbriatourism.it/it/eventi?month={target_month}&year={target_year}'
     try:
@@ -897,7 +897,7 @@ def _scrape_umbria(target_year: int, target_month: int) -> list[dict]:
 def _scrape_trentino(target_year: int, target_month: int) -> list[dict]:
     """Trentino-Alto Adige tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.visittrentino.info/it/eventi?mese={target_month}&anno={target_year}'
     try:
@@ -927,7 +927,7 @@ def _scrape_trentino(target_year: int, target_month: int) -> list[dict]:
 def _scrape_friuli(target_year: int, target_month: int) -> list[dict]:
     """Friuli-Venezia Giulia tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.turismofvg.it/it/agenda?anno={target_year}&mese={target_month}'
     try:
@@ -957,7 +957,7 @@ def _scrape_friuli(target_year: int, target_month: int) -> list[dict]:
 def _scrape_liguria(target_year: int, target_month: int) -> list[dict]:
     """Liguria tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.visitliguria.it/it/eventi?month={target_month}&year={target_year}&type=mercati'
     try:
@@ -987,7 +987,7 @@ def _scrape_liguria(target_year: int, target_month: int) -> list[dict]:
 def _scrape_marche(target_year: int, target_month: int) -> list[dict]:
     """Marche regional tourism portal."""
     events: list[dict] = []
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     url = f'https://www.le-marche.eu/it/eventi/?mese={target_month}&anno={target_year}'
     try:

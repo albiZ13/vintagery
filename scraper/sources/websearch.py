@@ -269,7 +269,7 @@ def _ddg_search(query: str) -> list[dict]:
     DDG uses uddg= redirect URLs and flat result__a / result__snippet lists.
     """
     from urllib.parse import unquote
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     url = f'https://html.duckduckgo.com/html/?q={quote_plus(query)}&kl=it-it'
     try:
         page = fetcher.fetch(url, headless=True, network_idle=True, wait=2000)
@@ -322,7 +322,7 @@ def _ddg_search(query: str) -> list[dict]:
 
 def _extract_from_page(url: str, city: str, target_year: int, target_month: int) -> list[dict]:
     """Download a result page and extract event details."""
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
     events = []
     try:
         page = fetcher.get(url, stealthy_headers=True, timeout=10)

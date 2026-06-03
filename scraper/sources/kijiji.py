@@ -112,7 +112,7 @@ def _guess_type(text: str) -> str:
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     seen: set[str] = set()
 
     # Kijiji search URL for events/svuotacantine

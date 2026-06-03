@@ -45,7 +45,7 @@ def _parse_date(text: str, year: int) -> tuple[str | None, str | None]:
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
     seen: set[str] = set()
 
     for page_num in range(1, 8):  # up to 7 pages (~63 events / 10 per page)

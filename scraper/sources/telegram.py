@@ -65,7 +65,7 @@ def _has_event_kw(text: str) -> bool:
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     seen: set[str] = set()
 
     for ch in PUBLIC_CHANNELS:

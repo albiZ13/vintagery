@@ -144,7 +144,7 @@ def _parse_date(text: str, target_year: int, target_month: int) -> str | None:
 
 
 def _ddg_search(query: str) -> list[dict]:
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     url = f'https://html.duckduckgo.com/html/?q={quote_plus(query)}&kl=it-it'
     try:
         page = fetcher.fetch(url, headless=True, network_idle=True, wait=2000)
@@ -188,7 +188,7 @@ def _scrape_fair_price_vintage(target_year: int, target_month: int) -> list[dict
         'https://fairpricevintage.it/events',
         'https://www.fairpricevintage.it',
     ]
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
     events: list[dict] = []
 
     for url in urls_to_try:
@@ -270,7 +270,7 @@ def _scrape_known_aggregators(target_year: int, target_month: int) -> list[dict]
         f'https://www.glamoo.it/offerte/moda-abbigliamento?q={month_name}+{target_year}',
         f'https://www.salesgossip.it/eventi-sample-sale/?month={target_month}&year={target_year}',
     ]
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
     events: list[dict] = []
 
     for url in aggregators:
@@ -363,7 +363,7 @@ def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
     cities_batch = CITIES[offset * 3:(offset + 1) * 3] + CITIES[:2]  # always Milano + Roma
     cities_deduped = list({c[0]: c for c in cities_batch}.values())
 
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     seen_urls: set[str] = set()
 
     for city, region in cities_deduped:

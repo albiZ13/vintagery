@@ -130,7 +130,7 @@ def _has_event_keyword(text: str) -> bool:
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = PlayWrightFetcher(auto_match=False)
+    fetcher = PlayWrightFetcher()
     seen: set[str] = set()
 
     for group in PUBLIC_GROUPS:

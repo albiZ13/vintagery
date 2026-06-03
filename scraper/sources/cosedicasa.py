@@ -105,7 +105,7 @@ REGION_MAP = {
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = Fetcher(auto_match=False)
+    fetcher = Fetcher()
 
     # Correct URL format: /mercatini/mese/{month}
     month_url = f'{BASE}/mercatini/mese/{target_month}'

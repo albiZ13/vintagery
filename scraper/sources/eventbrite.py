@@ -199,7 +199,7 @@ def _parse_events_from_html(html: str, target_year: int, target_month: int, cate
 
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
-    fetcher = StealthyFetcher(auto_match=False)
+    fetcher = StealthyFetcher()
     seen_globally: set[str] = set()
 
     for category in SEARCHES:
