@@ -10,9 +10,6 @@ Usage:
 """
 import os
 import re
-import warnings
-warnings.filterwarnings('ignore', message='.*deprecated.*auto_match.*')
-warnings.filterwarnings('ignore', message='.*auto_match.*deprecated.*')
 import unicodedata
 import argparse
 from datetime import datetime
@@ -21,6 +18,15 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query, HTTPException
 from supabase import create_client, Client
+from scrapling.fetchers import Fetcher, StealthyFetcher
+
+# Configurazione globale scrapling — disabilita auto_match (non serve)
+# Fatto qui una volta sola vale per tutti i moduli importati
+try:
+    StealthyFetcher.configure(auto_match=False)
+    Fetcher.configure(auto_match=False)
+except Exception:
+    pass
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env.local'))
 
