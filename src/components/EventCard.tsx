@@ -1,3 +1,5 @@
+'use client'
+
 import { MapPin, Clock, Euro, ExternalLink, RefreshCw, BadgeCheck } from 'lucide-react'
 import AddToCalendar from './AddToCalendar'
 import type { MarketEvent } from '@/types'
