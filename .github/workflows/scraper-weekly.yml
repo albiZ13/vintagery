@@ -68,7 +68,7 @@ jobs:
           python -m scraper.main \
             --month ${{ needs.setup.outputs.month1 }} \
             --year  ${{ needs.setup.outputs.year1 }} \
-            --sources recurring_fairs vinokilo neventum eventbrite comuni cosedicasa brand_sales bakeca kijiji subito reddit telegram facebook
+            --sources recurring_fairs vinokilo aggregators neventum eventbrite comuni cosedicasa brand_sales bakeca kijiji subito reddit telegram facebook
         env:
           NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -81,7 +81,7 @@ jobs:
           python -m scraper.main \
             --month ${{ needs.setup.outputs.month2 }} \
             --year  ${{ needs.setup.outputs.year2 }} \
-            --sources recurring_fairs vinokilo neventum eventbrite comuni cosedicasa brand_sales bakeca kijiji subito reddit telegram facebook
+            --sources recurring_fairs vinokilo aggregators neventum eventbrite comuni cosedicasa brand_sales bakeca kijiji subito reddit telegram facebook
         env:
           NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

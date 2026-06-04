@@ -32,7 +32,7 @@ log = logging.getLogger('scraper.scheduler')
 
 # ── Source groups by freshness need ───────────────────────────────────────
 
-FAST_SOURCES = ['recurring_fairs', 'vinokilo', 'neventum']
+FAST_SOURCES = ['recurring_fairs', 'vinokilo', 'aggregators', 'neventum']
 MEDIUM_SOURCES = ['cosedicasa', 'eventbrite', 'comuni', 'websearch', 'brand_sales']
 SLOW_SOURCES = ['subito', 'bakeca', 'kijiji', 'reddit', 'facebook', 'telegram']
 ALL_SOURCES = FAST_SOURCES + MEDIUM_SOURCES + SLOW_SOURCES

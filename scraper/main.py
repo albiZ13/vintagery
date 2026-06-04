@@ -127,7 +127,12 @@ def upsert_event(supabase: Client, ev: dict, source: str, month: int, year: int)
 
 
 def run_scrape(month: int, year: int, source_filter: list[str] | None = None, region: str | None = None) -> dict:
-    from .sources import vinokilo, eventbrite, subito, facebook, neventum, cosedicasa, telegram, recurring_fairs, comuni, reddit, bakeca, kijiji, websearch, brand_sales
+    from .sources import (
+        vinokilo, eventbrite, subito, facebook, neventum, cosedicasa,
+        telegram, recurring_fairs, comuni, reddit, bakeca, kijiji,
+        websearch, brand_sales, aggregators,
+    )
+    from .quality import filter_and_score
 
     supabase = get_supabase()
     results: dict[str, dict] = {}
@@ -135,47 +140,71 @@ def run_scrape(month: int, year: int, source_filter: list[str] | None = None, re
     sources = [
         ('recurring_fairs', recurring_fairs.scrape),   # 1.0 — hardcoded verified
         ('vinokilo',        vinokilo.scrape),           # 1.0 — official site
+        ('aggregators',     aggregators.scrape),        # 0.90 — direct aggregator sites
         ('neventum',        neventum.scrape),           # 0.85 — B2B directory
         ('eventbrite',      eventbrite.scrape),         # 0.75 — official platform
-        ('comuni',          comuni.scrape),             # 0.70 — regional portals + comuni
+        ('comuni',          comuni.scrape),             # 0.70 — regional portals
         ('cosedicasa',      cosedicasa.scrape),         # 0.65 — community calendar
-        ('websearch',       websearch.scrape),          # 0.55 — ricerca internet DDG
-        ('brand_sales',     brand_sales.scrape),        # 0.60 — fair price + brand sale
-        ('bakeca',          bakeca.scrape),             # 0.45 — annunci privati bakeca.it
-        ('kijiji',          kijiji.scrape),             # 0.40 — annunci privati kijiji.it
-        ('subito',          subito.scrape),             # 0.40 — classified ads subito.it
+        ('brand_sales',     brand_sales.scrape),        # 0.60 — brand/fair price
+        ('websearch',       websearch.scrape),          # 0.55 — DDG + Claude Haiku
+        ('bakeca',          bakeca.scrape),             # 0.45 — classifieds bakeca.it
+        ('kijiji',          kijiji.scrape),             # 0.40 — classifieds kijiji.it
+        ('subito',          subito.scrape),             # 0.40 — classifieds subito.it
         ('reddit',          reddit.scrape),             # 0.35 — Italian subreddits
         ('telegram',        telegram.scrape),           # 0.30 — public channels
         ('facebook',        facebook.scrape),           # 0.25 — public groups
     ]
 
+    # Aggiungi confidence score per aggregators
+    SOURCE_CONFIDENCE['aggregators'] = 0.90
+
     if source_filter:
         sources = [(n, fn) for n, fn in sources if n in source_filter]
 
     for source_name, scrape_fn in sources:
-        inserted = 0
+        inserted  = 0
+        filtered  = 0
         errors: list[str] = []
+
         try:
             import inspect
-            sig = inspect.signature(scrape_fn)
+            sig    = inspect.signature(scrape_fn)
             kwargs = {'region': region} if region and 'region' in sig.parameters else {}
+
+            # Raccogli eventi in batch per il quality filter
+            raw_batch: list[dict] = []
             for ev in scrape_fn(year, month, **kwargs):
                 if region and ev.get('region') and ev['region'] != region:
                     continue
+                raw_batch.append(ev)
+
+            # Applica quality filter (Claude Haiku) — salta per fonti già verificate
+            SKIP_QUALITY = {'recurring_fairs', 'vinokilo'}
+            if source_name in SKIP_QUALITY:
+                validated = raw_batch
+            else:
+                pre_count = len(raw_batch)
+                validated = filter_and_score(raw_batch)
+                filtered  = pre_count - len(validated)
+
+            # Upsert eventi validati
+            for ev in validated:
                 try:
                     if upsert_event(supabase, ev, source_name, month, year):
                         inserted += 1
                 except Exception as e:
                     errors.append(str(e))
+
         except Exception as e:
             errors.append(f'scraper crashed: {e}')
 
         results[source_name] = {
             'inserted': inserted,
+            'filtered': filtered,
             'errors':   errors,
             'confidence': SOURCE_CONFIDENCE.get(source_name),
         }
-        print(f'[{source_name}] inserted={inserted} errors={len(errors)}')
+        print(f'[{source_name}] inserted={inserted} filtered_out={filtered} errors={len(errors)}')
 
     return results
 
