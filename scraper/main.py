@@ -137,17 +137,13 @@ def delete_recurring_search_data(supabase: Client) -> int:
 def run_recurring_search(month: int, year: int) -> dict:
     """
     Ricerca sistematica mercati ricorrenti in tutta Italia.
-    1. Cancella tutti i record scraper-italy_recurring esistenti.
-    2. Regione → Provincia → DDG + directory italiane (zero AI).
-    3. Upsert risultati filtrati (solo is_recurring=True).
+    Aggiunge nuovi mercati senza toccare quelli esistenti.
+    Il dedup_key (nome+città) impedisce duplicati.
     """
     from .sources import italy_recurring_search
 
     supabase = get_supabase()
     SOURCE_CONFIDENCE['italy_recurring'] = 0.60
-
-    # Step 1: pulisci dati precedenti
-    delete_recurring_search_data(supabase)
 
     inserted = 0
     filtered = 0
