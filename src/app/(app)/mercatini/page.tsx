@@ -145,54 +145,44 @@ async function TuttiIContenuti({ searchParams }: Props) {
   const recurringByRegion = groupByRegion(recurringEvents)
   const onetimeByRegion   = groupByRegion(onetimeEvents)
 
-  const regionsWithFixed     = Object.keys(marketsByRegion).sort()
-  const regionsWithRecurring = Object.keys(recurringByRegion).sort()
-  const regionsWithOnetime   = Object.keys(onetimeByRegion).sort()
+  // Regioni con almeno un mercato fisso o ricorrente
+  const regionsWithRecurring = Array.from(new Set([
+    ...Object.keys(marketsByRegion),
+    ...Object.keys(recurringByRegion),
+  ])).sort()
+  const regionsWithOnetime = Object.keys(onetimeByRegion).sort()
+
+  const totalRecurring = allMarkets.length + recurringEvents.length
 
   return (
     <div className="space-y-12">
 
-      {/* ── SEZIONE 1: Mercati fissi ────────────────────────────────── */}
-      {allMarkets.length > 0 && (
-        <section>
-          <SectionHeading
-            icon={<span className="text-[14px] select-none">🏛️</span>}
-            title="Mercati fissi e ricorrenti"
-            subtitle="Presenti ogni settimana o ogni mese — sempre qui ad aspettarti"
-            count={allMarkets.length}
-          />
-          {regionsWithFixed.map(region => (
-            <div key={region}>
-              <RegionLabel region={region} count={marketsByRegion[region].length} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {marketsByRegion[region].map((m: Market) => (
-                  <MarketCard key={m.id} market={m} compact />
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* ── SEZIONE 2: Appuntamenti ricorrenti di questo mese ──────── */}
-      {recurringEvents.length > 0 && (
+      {/* ── SEZIONE 1: Mercati ricorrenti (fissi + mensili unificati) ── */}
+      {totalRecurring > 0 && (
         <section>
           <SectionHeading
             icon={<span className="text-[14px] select-none">🔁</span>}
-            title="Appuntamenti ricorrenti"
-            subtitle={`Fiere e mercati che tornano ogni mese — edizione di ${MONTHS_IT[month - 1]} ${year}`}
-            count={recurringEvents.length}
+            title="Mercati ricorrenti"
+            subtitle={`Fissi o mensili — tornano sempre · edizione ${MONTHS_IT[month - 1]} ${year}`}
+            count={totalRecurring}
           />
-          {regionsWithRecurring.map(region => (
-            <div key={region}>
-              <RegionLabel region={region} count={recurringByRegion[region].length} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recurringByRegion[region].map((e: MarketEvent) => (
-                  <EventCard key={e.id} event={e} />
-                ))}
+          {regionsWithRecurring.map(region => {
+            const fixed    = marketsByRegion[region]   ?? []
+            const monthly  = recurringByRegion[region] ?? []
+            return (
+              <div key={region}>
+                <RegionLabel region={region} count={fixed.length + monthly.length} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {fixed.map((m: Market) => (
+                    <MarketCard key={m.id} market={m} compact />
+                  ))}
+                  {monthly.map((e: MarketEvent) => (
+                    <EventCard key={e.id} event={e} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </section>
       )}
 
