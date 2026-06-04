@@ -898,6 +898,257 @@ KNOWN_FAIRS = [
         'categories': ['Antiquariato'],
         'tags': ['viterbo', 'lazio', 'mensile'],
     },
+
+    # ─── MERCATI SETTIMANALI ───────────────────────────────────────────────
+    # Mercati con cadenza settimanale che includono banchi di usato/vintage
+
+    {
+        'name': 'Mercato delle Cascine – Firenze',
+        'description': (
+            'Il più grande mercato settimanale di Firenze, ogni martedì mattina. '
+            'Centinaia di banchi: abbigliamento usato e vintage, oggetti, accessori, tessuti. '
+            'Uno dei mercati più antichi e amati della città.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Firenze',
+        'region': 'Toscana',
+        'address': 'Viale Lincoln / Parco delle Cascine, Firenze',
+        'schedule': 'every_tuesday',
+        'start_time': '08:00',
+        'end_time': '14:00',
+        'website': None,
+        'organizer': 'Comune di Firenze',
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Abbigliamento', 'Vintage', 'Usato'],
+        'tags': ['firenze', 'toscana', 'settimanale', 'martedì'],
+    },
+    {
+        'name': 'Mercato Settimanale – Pistoia',
+        'description': (
+            'Il tradizionale mercato settimanale di Pistoia si svolge ogni mercoledì e sabato '
+            'nel centro storico. Include banchi di abbigliamento usato, oggetti vintage e '
+            'piccolo antiquariato. Appuntamento fisso per i pistoiesi.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Pistoia',
+        'region': 'Toscana',
+        'address': 'Piazza del Duomo e centro storico, Pistoia',
+        'schedule': 'every_wednesday_and_saturday',
+        'start_time': '08:00',
+        'end_time': '13:30',
+        'website': None,
+        'organizer': 'Comune di Pistoia',
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Usato', 'Abbigliamento', 'Vintage'],
+        'tags': ['pistoia', 'toscana', 'settimanale', 'mercoledì', 'sabato'],
+    },
+    {
+        'name': 'Mercato di Senigallia – Milano',
+        'description': (
+            'Storico mercato delle pulci milanese lungo i Navigli, ogni sabato mattina. '
+            'Antiquariato, vintage, libri usati, oggetti curiosi. '
+            'Frequentato da collezionisti e appassionati di tutta la Lombardia.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Milano',
+        'region': 'Lombardia',
+        'address': 'Via Calatafimi / Alzaia Naviglio Grande, Milano',
+        'schedule': 'every_saturday',
+        'start_time': '09:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Vintage', 'Libri'],
+        'tags': ['milano', 'lombardia', 'settimanale', 'sabato', 'navigli'],
+    },
+    {
+        'name': 'Mercato di Porta Palazzo – Torino',
+        'description': (
+            'Il più grande mercato all\'aperto d\'Europa, con un\'importante sezione '
+            'di usato e vintage ogni domenica. Abbigliamento, elettrodomestici vintage, '
+            'oggetti, curiosità. Un\'istituzione torinese.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Torino',
+        'region': 'Piemonte',
+        'address': 'Piazza della Repubblica, Torino',
+        'schedule': 'every_sunday',
+        'start_time': '08:00',
+        'end_time': '14:00',
+        'website': None,
+        'organizer': 'Comune di Torino',
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Usato', 'Vintage', 'Abbigliamento'],
+        'tags': ['torino', 'piemonte', 'settimanale', 'domenica', 'porta palazzo'],
+    },
+    {
+        'name': 'Mercato Antiquariato Via Piave – Bologna',
+        'description': (
+            'Mercato domenicale di antiquariato e vintage nel cuore di Bologna. '
+            'Libri usati, oggetti d\'epoca, abbigliamento vintage, stampe e incisioni.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Bologna',
+        'region': 'Emilia-Romagna',
+        'address': 'Via Piave / Parco della Montagnola, Bologna',
+        'schedule': 'every_sunday',
+        'start_time': '09:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Libri', 'Vintage'],
+        'tags': ['bologna', 'emilia-romagna', 'settimanale', 'domenica'],
+    },
+    {
+        'name': 'Mercato di Piazza Vittorio – Roma',
+        'description': (
+            'Mercato domenicale di abbigliamento usato, vintage e oggetti vari '
+            'in Piazza Vittorio Emanuele II. Frequentato e variegato, con banchi '
+            'di vintage anni \'70–\'90 e abbigliamento usato a prezzi accessibili.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Roma',
+        'region': 'Lazio',
+        'address': 'Piazza Vittorio Emanuele II, Roma',
+        'schedule': 'every_sunday',
+        'start_time': '08:00',
+        'end_time': '14:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Usato', 'Vintage', 'Abbigliamento'],
+        'tags': ['roma', 'lazio', 'settimanale', 'domenica'],
+    },
+    {
+        'name': 'Fiera dell\'Antiquariato – Padova',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Padova, ogni quarta domenica. '
+            'Mobili, oggetti d\'arte, ceramiche, libri e vinili.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Padova',
+        'region': 'Veneto',
+        'address': 'Prato della Valle, Padova',
+        'schedule': 'fourth_sunday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Arte'],
+        'tags': ['padova', 'veneto', 'mensile'],
+    },
+    {
+        'name': 'Mercato dell\'Antiquariato – Napoli',
+        'description': (
+            'Mercato domenicale di antiquariato e vintage a Villa Comunale. '
+            'Oggetti d\'antiquariato, libri usati, vinili, ceramiche.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Napoli',
+        'region': 'Campania',
+        'address': 'Villa Comunale, Napoli',
+        'schedule': 'every_sunday',
+        'start_time': '09:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Libri', 'Vinili'],
+        'tags': ['napoli', 'campania', 'settimanale', 'domenica'],
+    },
+    {
+        'name': 'Mercato delle Pulci – Genova',
+        'description': (
+            'Mercato delle pulci domenicale di Genova, con banchi di antiquariato, '
+            'usato e curiosità. Storico appuntamento genovese.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Genova',
+        'region': 'Liguria',
+        'address': 'Corso Sardegna, Genova',
+        'schedule': 'every_sunday',
+        'start_time': '09:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Usato', 'Antiquariato'],
+        'tags': ['genova', 'liguria', 'settimanale', 'domenica'],
+    },
+    {
+        'name': 'Mercato Antiquariato – Bari Vecchia',
+        'description': (
+            'Mercato domenicale di antiquariato e usato nel centro storico di Bari. '
+            'Ceramiche, oggetti vintage, libri e curiosità pugliesi.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Bari',
+        'region': 'Puglia',
+        'address': 'Bari Vecchia, Bari',
+        'schedule': 'every_sunday',
+        'start_time': '09:00',
+        'end_time': '14:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Ceramiche'],
+        'tags': ['bari', 'puglia', 'settimanale', 'domenica'],
+    },
+    {
+        'name': 'Mercato dell\'Antiquariato – Catania',
+        'description': (
+            'Mercato domenicale di antiquariato a Catania, vicino alla Pescheria. '
+            'Oggetti d\'epoca, ceramiche siciliane, libri, vinili.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Catania',
+        'region': 'Sicilia',
+        'address': 'Via Plebiscito / Mercato della Pescheria, Catania',
+        'schedule': 'every_sunday',
+        'start_time': '09:00',
+        'end_time': '14:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Ceramiche'],
+        'tags': ['catania', 'sicilia', 'settimanale', 'domenica'],
+    },
 ]
 
 
@@ -953,10 +1204,45 @@ def _dates_for_schedule(fair: dict, year: int, month: int) -> list[tuple[str, st
             results.append((sun.isoformat(), None))
 
     elif schedule == 'every_saturday':
-        # Only first Saturday of the month — is_recurring=True communicates it repeats weekly
         sat = _nth_weekday(year, month, 5, 1)
         if sat:
             results.append((sat.isoformat(), None))
+
+    elif schedule == 'every_tuesday':
+        tue = _nth_weekday(year, month, 1, 1)
+        if tue:
+            results.append((tue.isoformat(), None))
+
+    elif schedule == 'every_wednesday':
+        wed = _nth_weekday(year, month, 2, 1)
+        if wed:
+            results.append((wed.isoformat(), None))
+
+    elif schedule == 'every_thursday':
+        thu = _nth_weekday(year, month, 3, 1)
+        if thu:
+            results.append((thu.isoformat(), None))
+
+    elif schedule == 'every_friday':
+        fri = _nth_weekday(year, month, 4, 1)
+        if fri:
+            results.append((fri.isoformat(), None))
+
+    elif schedule == 'every_wednesday_and_saturday':
+        wed = _nth_weekday(year, month, 2, 1)
+        sat = _nth_weekday(year, month, 5, 1)
+        if wed:
+            results.append((wed.isoformat(), None))
+        if sat:
+            results.append((sat.isoformat(), None))
+
+    elif schedule == 'every_sunday_and_saturday':
+        sun = _nth_weekday(year, month, 6, 1)
+        sat = _nth_weekday(year, month, 5, 1)
+        if sat:
+            results.append((sat.isoformat(), None))
+        if sun:
+            results.append((sun.isoformat(), None))
 
     return results
 

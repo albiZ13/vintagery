@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { Suspense } from 'react'
+import React, { Suspense } from 'react'
 import Link from 'next/link'
 import { MapPin, Calendar, Sparkles } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
@@ -40,7 +40,40 @@ function getMonthYear(sp: Props['searchParams']) {
   return { month, year }
 }
 
-// ── Unified content: markets + events grouped by region ───────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function SectionHeading({ icon, title, subtitle, count }: {
+  icon: React.ReactNode; title: string; subtitle: string; count: number
+}) {
+  return (
+    <div className="flex items-end gap-4 mb-6">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          {icon}
+          <h2 className="font-serif font-bold text-espresso text-[18px]">{title}</h2>
+          <span className="text-[11px] font-medium text-muted bg-cream border border-border px-2 py-0.5 rounded-full ml-1">
+            {count}
+          </span>
+        </div>
+        <p className="text-[12px] text-muted">{subtitle}</p>
+      </div>
+      <div className="flex-1 h-px bg-border mb-1" />
+    </div>
+  )
+}
+
+function RegionLabel({ region, count }: { region: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2 mb-3 mt-6 first:mt-0">
+      <MapPin size={11} className="text-sienna/50 flex-shrink-0" />
+      <span className="text-[12px] font-semibold text-espresso/70">{region}</span>
+      <span className="text-[10px] text-muted">({count})</span>
+      <div className="flex-1 h-px bg-border/60" />
+    </div>
+  )
+}
+
+// ── Main content component ────────────────────────────────────────────────────
 
 async function TuttiIContenuti({ searchParams }: Props) {
   const supabase = createServerClient()
@@ -54,57 +87,43 @@ async function TuttiIContenuti({ searchParams }: Props) {
   const MARKET_COLS = 'id,name,description,city,region,address,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count'
   const EVENT_COLS  = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags'
 
-  // Fetch markets (recurring always + occasionale if date in month)
   let marketsQuery = supabase
     .from('markets')
     .select(MARKET_COLS)
-    .or(
-      `frequency.in.(settimanale,mensile),` +
-      `and(next_date.gte.${startOfMonth},next_date.lte.${endOfMonth})`
-    )
+    .or(`frequency.in.(settimanale,mensile),and(next_date.gte.${startOfMonth},next_date.lte.${endOfMonth})`)
     .order('is_featured', { ascending: false })
     .order('avg_rating',  { ascending: false })
-
   if (regionFilter !== 'all') marketsQuery = marketsQuery.eq('region', regionFilter)
 
-  // Fetch dated events — skip if type filter is active (markets don't have event_type)
   let eventsQuery = supabase
     .from('market_events')
     .select(EVENT_COLS)
     .gte('start_date', startOfMonth)
     .lte('start_date', endOfMonth)
-    .order('is_featured', { ascending: false })
-    .order('start_date',  { ascending: true })
-
+    .order('is_recurring', { ascending: false })   // ricorrenti prima
+    .order('start_date',   { ascending: true })
   if (typeFilter   !== 'all') eventsQuery = eventsQuery.eq('event_type', typeFilter)
   if (regionFilter !== 'all') eventsQuery = eventsQuery.eq('region', regionFilter)
 
   const [{ data: markets }, { data: events }] = await Promise.all([
-    // Skip markets when a specific (non-mercatino) type filter is active
     typeFilter === 'all' || typeFilter === 'mercatino' || typeFilter === 'antiquariato'
       ? marketsQuery.limit(500)
       : Promise.resolve({ data: [] as Market[] }),
     eventsQuery.limit(500),
   ])
 
-  // Group by region
-  const byRegion: Record<string, { markets: Market[]; events: MarketEvent[] }> = {}
+  const allMarkets   = (markets ?? []) as Market[]
+  const allEvents    = (events  ?? []) as MarketEvent[]
 
-  ;((markets ?? []) as Market[]).forEach((m: Market) => {
-    if (!byRegion[m.region]) byRegion[m.region] = { markets: [], events: [] }
-    byRegion[m.region].markets.push(m)
-  })
-  ;(events ?? []).forEach((e: MarketEvent) => {
-    if (!byRegion[e.region]) byRegion[e.region] = { markets: [], events: [] }
-    byRegion[e.region].events.push(e)
-  })
+  // Separa eventi ricorrenti da una-tantum
+  const recurringEvents = allEvents.filter(e => e.is_recurring)
+  const onetimeEvents   = allEvents.filter(e => !e.is_recurring)
 
-  const sortedRegions = Object.keys(byRegion).sort()
-  const totalItems = (markets?.length ?? 0) + (events?.length ?? 0)
+  const totalItems = allMarkets.length + allEvents.length
 
   if (totalItems === 0) {
     return (
-      <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl">
+      <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl bg-white">
         <Sparkles size={32} className="text-muted mx-auto mb-3" />
         <h3 className="font-serif text-lg font-semibold text-espresso mb-1">Nessun contenuto trovato</h3>
         <p className="text-muted text-sm mb-5 max-w-sm mx-auto">
@@ -115,43 +134,91 @@ async function TuttiIContenuti({ searchParams }: Props) {
     )
   }
 
-  return (
-    <>
-      {sortedRegions.map(region => {
-        const { markets: rMarkets, events: rEvents } = byRegion[region]
-        const total = rMarkets.length + rEvents.length
-        return (
-          <div key={region} className="mb-12">
-            {/* Region header */}
-            <div className="flex items-center gap-3 mb-5">
-              <MapPin size={14} className="text-sienna flex-shrink-0" />
-              <h2 className="font-serif text-lg font-semibold text-espresso">{region}</h2>
-              <span className="text-muted text-[12px]">
-                {rMarkets.length > 0 && (
-                  <>{rMarkets.length} fisso{rMarkets.length !== 1 ? 'i' : ''}{rEvents.length > 0 ? ' · ' : ''}</>
-                )}
-                {rEvents.length > 0 && (
-                  <>{rEvents.length} event{rEvents.length !== 1 ? 'i' : 'o'}</>
-                )}
-              </span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
+  // Group by region helper
+  function groupByRegion<T extends { region: string }>(items: T[]) {
+    const m: Record<string, T[]> = {}
+    items.forEach(i => { if (!m[i.region]) m[i.region] = []; m[i.region].push(i) })
+    return m
+  }
 
-            {/* Unified grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Recurring markets first */}
-              {rMarkets.map((m: Market) => (
-                <MarketCard key={`m-${m.id}`} market={m} compact />
-              ))}
-              {/* Dated events after */}
-              {rEvents.map((e: MarketEvent) => (
-                <EventCard key={`e-${e.id}`} event={e} />
-              ))}
+  const marketsByRegion   = groupByRegion(allMarkets)
+  const recurringByRegion = groupByRegion(recurringEvents)
+  const onetimeByRegion   = groupByRegion(onetimeEvents)
+
+  const regionsWithFixed     = Object.keys(marketsByRegion).sort()
+  const regionsWithRecurring = Object.keys(recurringByRegion).sort()
+  const regionsWithOnetime   = Object.keys(onetimeByRegion).sort()
+
+  return (
+    <div className="space-y-12">
+
+      {/* ── SEZIONE 1: Mercati fissi ────────────────────────────────── */}
+      {allMarkets.length > 0 && (
+        <section>
+          <SectionHeading
+            icon={<span className="text-[14px] select-none">🏛️</span>}
+            title="Mercati fissi e ricorrenti"
+            subtitle="Presenti ogni settimana o ogni mese — sempre qui ad aspettarti"
+            count={allMarkets.length}
+          />
+          {regionsWithFixed.map(region => (
+            <div key={region}>
+              <RegionLabel region={region} count={marketsByRegion[region].length} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {marketsByRegion[region].map((m: Market) => (
+                  <MarketCard key={m.id} market={m} compact />
+                ))}
+              </div>
             </div>
-          </div>
-        )
-      })}
-    </>
+          ))}
+        </section>
+      )}
+
+      {/* ── SEZIONE 2: Appuntamenti ricorrenti di questo mese ──────── */}
+      {recurringEvents.length > 0 && (
+        <section>
+          <SectionHeading
+            icon={<span className="text-[14px] select-none">🔁</span>}
+            title="Appuntamenti ricorrenti"
+            subtitle={`Fiere e mercati che tornano ogni mese — edizione di ${MONTHS_IT[month - 1]} ${year}`}
+            count={recurringEvents.length}
+          />
+          {regionsWithRecurring.map(region => (
+            <div key={region}>
+              <RegionLabel region={region} count={recurringByRegion[region].length} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recurringByRegion[region].map((e: MarketEvent) => (
+                  <EventCard key={e.id} event={e} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* ── SEZIONE 3: Appuntamenti speciali del mese ──────────────── */}
+      {onetimeEvents.length > 0 && (
+        <section>
+          <SectionHeading
+            icon={<span className="text-[14px] select-none">✦</span>}
+            title={`Solo a ${MONTHS_IT[month - 1]}`}
+            subtitle="Svuotacantine, eventi speciali, fiere una-tantum — non perderli"
+            count={onetimeEvents.length}
+          />
+          {regionsWithOnetime.map(region => (
+            <div key={region}>
+              <RegionLabel region={region} count={onetimeByRegion[region].length} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {onetimeByRegion[region].map((e: MarketEvent) => (
+                  <EventCard key={e.id} event={e} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+    </div>
   )
 }
 
