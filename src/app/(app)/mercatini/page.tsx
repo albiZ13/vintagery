@@ -82,9 +82,9 @@ async function TuttiIContenuti({ searchParams }: Props) {
   const [{ data: markets }, { data: events }] = await Promise.all([
     // Skip markets when a specific (non-mercatino) type filter is active
     typeFilter === 'all' || typeFilter === 'mercatino' || typeFilter === 'antiquariato'
-      ? marketsQuery.limit(30)
+      ? marketsQuery.limit(500)
       : Promise.resolve({ data: [] as Market[] }),
-    eventsQuery.limit(200),
+    eventsQuery.limit(500),
   ])
 
   // Group by region

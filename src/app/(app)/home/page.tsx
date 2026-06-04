@@ -27,7 +27,7 @@ export default async function HomePage() {
 
   const region = profile?.region ?? null
 
-  let marketsQ = supabase.from('markets').select(MARKET_COLS).limit(6)
+  let marketsQ = supabase.from('markets').select(MARKET_COLS).limit(100)
   if (region) {
     marketsQ = marketsQ
       .eq('region', region)
