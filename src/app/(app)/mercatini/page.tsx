@@ -155,20 +155,14 @@ async function TuttiIContenuti({ searchParams }: Props) {
   const totalRecurring = allMarkets.length + recurringEvents.length
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
 
-      {/* ── SEZIONE 1: Mercati ricorrenti (fissi + mensili unificati) ── */}
+      {/* ── Mercati — unico gruppo ────────────────────────────────────── */}
       {totalRecurring > 0 && (
         <section>
-          <SectionHeading
-            icon={<span className="text-[14px] select-none">🔁</span>}
-            title="Mercati ricorrenti"
-            subtitle={`Fissi o mensili — tornano sempre · edizione ${MONTHS_IT[month - 1]} ${year}`}
-            count={totalRecurring}
-          />
           {regionsWithRecurring.map(region => {
-            const fixed    = marketsByRegion[region]   ?? []
-            const monthly  = recurringByRegion[region] ?? []
+            const fixed   = marketsByRegion[region]   ?? []
+            const monthly = recurringByRegion[region] ?? []
             return (
               <div key={region}>
                 <RegionLabel region={region} count={fixed.length + monthly.length} />
@@ -186,7 +180,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
         </section>
       )}
 
-      {/* ── SEZIONE 3: Appuntamenti speciali del mese ──────────────── */}
+      {/* ── Solo a [mese] — eventi una-tantum ─────────────────────────── */}
       {onetimeEvents.length > 0 && (
         <section>
           <SectionHeading
