@@ -159,6 +159,7 @@ export interface MarketEvent {
   is_recurring: boolean
   categories: string[] | null
   tags: string[] | null
+  tips: string | null
 }
 
 export const MONTHS_IT = [

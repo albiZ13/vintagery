@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Clock, ExternalLink, RefreshCw, BadgeCheck, Ticket } from 'lucide-react'
+import { MapPin, Clock, ExternalLink, RefreshCw, BadgeCheck, Ticket, Lightbulb } from 'lucide-react'
 import AddToCalendar from './AddToCalendar'
 import type { MarketEvent } from '@/types'
 
@@ -149,6 +149,16 @@ export default function EventCard({ event, compact = false }: Props) {
             </p>
           ) : null
         })()}
+
+        {/* Tips */}
+        {!compact && event.tips && (
+          <div className="flex items-start gap-2 mb-4 bg-gold/8 border border-gold/20 rounded-xl px-3 py-2.5">
+            <Lightbulb size={11} className="text-gold flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-espresso/80 leading-relaxed">
+              {event.tips}
+            </p>
+          </div>
+        )}
 
         {/* Organizer */}
         {event.organizer && (
