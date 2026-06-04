@@ -126,6 +126,58 @@ def upsert_event(supabase: Client, ev: dict, source: str, month: int, year: int)
     return not bool(getattr(result, 'error', None))
 
 
+def delete_recurring_search_data(supabase: Client) -> int:
+    """Elimina tutti i record trovati dallo scraper recurring-search prima di una nuova run."""
+    result = supabase.from_('market_events').delete().eq('source', 'scraper-italy_recurring').execute()
+    deleted = len(result.data) if result.data else 0
+    print(f'[recurring] eliminati {deleted} record precedenti (source=scraper-italy_recurring)')
+    return deleted
+
+
+def run_recurring_search(month: int, year: int) -> dict:
+    """
+    Ricerca sistematica mercati ricorrenti in tutta Italia.
+    1. Cancella tutti i record scraper-italy_recurring esistenti.
+    2. Regione → Provincia → DDG + directory italiane (zero AI).
+    3. Upsert risultati filtrati (solo is_recurring=True).
+    """
+    from .sources import italy_recurring_search
+
+    supabase = get_supabase()
+    SOURCE_CONFIDENCE['italy_recurring'] = 0.60
+
+    # Step 1: pulisci dati precedenti
+    delete_recurring_search_data(supabase)
+
+    inserted = 0
+    filtered = 0
+    errors: list[str] = []
+
+    try:
+        for ev in italy_recurring_search.scrape(year, month):
+            if not ev.get('is_recurring'):
+                filtered += 1
+                continue
+            try:
+                if upsert_event(supabase, ev, 'italy_recurring', month, year):
+                    inserted += 1
+            except Exception as e:
+                errors.append(str(e))
+    except Exception as e:
+        errors.append(f'scraper crashed: {e}')
+
+    result = {
+        'italy_recurring': {
+            'inserted':   inserted,
+            'filtered':   filtered,
+            'errors':     errors,
+            'confidence': 0.60,
+        }
+    }
+    print(f'[italy_recurring] inserted={inserted} filtered_out={filtered} errors={len(errors)}')
+    return result
+
+
 def run_scrape(month: int, year: int, source_filter: list[str] | None = None, region: str | None = None) -> dict:
     from .sources import (
         vinokilo, eventbrite, subito, facebook, neventum, cosedicasa,
@@ -232,6 +284,28 @@ async def scrape_endpoint(
     return {'success': True, 'month': m, 'year': y, 'total_inserted': total, 'by_source': results}
 
 
+@app.post('/scrape-recurring')
+async def scrape_recurring_endpoint(
+    month:  int = Query(default=None),
+    year:   int = Query(default=None),
+    secret: str = Query(default=None),
+):
+    """
+    Ricerca sistematica mercati ricorrenti — tutta Italia, zero AI.
+    Cancella dati precedenti e ri-scansiona regione per regione.
+    """
+    if secret != os.environ.get('CRON_SECRET'):
+        raise HTTPException(status_code=401, detail='Unauthorized')
+
+    now = datetime.now()
+    m = month or now.month
+    y = year  or now.year
+
+    results = run_recurring_search(m, y)
+    total   = sum(r['inserted'] for r in results.values())
+    return {'success': True, 'month': m, 'year': y, 'total_inserted': total, 'by_source': results}
+
+
 @app.get('/health')
 async def health():
     return {'status': 'ok'}
@@ -246,15 +320,26 @@ if __name__ == '__main__':
     parser.add_argument('--year',   type=int,    default=None)
     parser.add_argument('--region', type=str,    default=None, help='Limita a una regione specifica')
     parser.add_argument('--sources', nargs='+',  default=None, choices=ALL_SOURCES)
+    parser.add_argument(
+        '--mode', type=str, default=None,
+        choices=['recurring'],
+        help='recurring = ricerca sistematica mercati ricorrenti (cancella dati precedenti)',
+    )
     args = parser.parse_args()
 
     now = datetime.now()
     month = args.month or now.month
     year  = args.year  or now.year
 
-    label = f'{month:02d}/{year}' + (f' [{args.region}]' if args.region else ' [tutte le regioni]')
-    print(f'Scraping events for {label}...')
-    results = run_scrape(month, year, source_filter=args.sources, region=args.region)
+    if args.mode == 'recurring':
+        print(f'Ricerca mercati ricorrenti — {month:02d}/{year}')
+        print('Questo processo cancella i dati precedenti e ri-scansiona tutta Italia.')
+        results = run_recurring_search(month, year)
+    else:
+        label = f'{month:02d}/{year}' + (f' [{args.region}]' if args.region else ' [tutte le regioni]')
+        print(f'Scraping events for {label}...')
+        results = run_scrape(month, year, source_filter=args.sources, region=args.region)
+
     total = sum(r['inserted'] for r in results.values())
     print(f'\nDone. Total inserted: {total}')
     for src, r in results.items():
