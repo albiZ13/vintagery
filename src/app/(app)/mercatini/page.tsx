@@ -168,92 +168,106 @@ export default function MercatiniPage({ searchParams }: Props) {
   const nextYear  = month === 12 ? year + 1 : year
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
+    <div className="min-h-screen bg-parchment">
 
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 text-sienna text-sm font-medium mb-2">
-          <Sparkles size={14} /> Aggiornato automaticamente ogni mese
-        </div>
-        <h1 className="font-serif text-display-md text-espresso mb-2">
-          Vintage & Antiquariato in Italia
-        </h1>
-        <p className="text-muted text-body-sm max-w-xl leading-relaxed">
-          Mercatini fissi, fiere di antiquariato, Vinokilo, svuotacantine, svendite brand,
-          fumetti e vinili — tutte le regioni italiane.
-        </p>
-      </div>
-
-      {/* Month nav + sync */}
-      <div className="flex items-center justify-between bg-white border border-border rounded-xl px-5 py-3 mb-6 flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/mercatini?month=${prevMonth}&year=${prevYear}&type=${typeFilter}&region=${regionFilter}`}
-            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-coffee hover:border-sienna hover:text-sienna transition-colors font-bold"
-          >‹</Link>
-          <div className="text-center min-w-[150px]">
-            <span className="font-serif font-bold text-espresso text-lg">
-              {MONTHS_IT[month - 1]} {year}
-            </span>
+      {/* Page header — dark band */}
+      <div className="bg-espresso border-b border-black/20">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-sienna mb-3">
+            Directory del vintage italiano
+          </p>
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <div>
+              <h1 className="font-serif font-bold text-parchment leading-[1.1]"
+                style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)' }}>
+                Mercatini & Antiquariato
+              </h1>
+              <p className="text-parchment/45 text-[13px] mt-1.5">
+                Fiere, svuotacantine, vinile, fumetti — tutte le regioni.
+              </p>
+            </div>
+            {/* Month navigation */}
+            <div className="flex items-center gap-1 bg-white/8 border border-white/12 rounded-xl px-1 py-1">
+              <Link
+                href={`/mercatini?month=${prevMonth}&year=${prevYear}&type=${typeFilter}&region=${regionFilter}`}
+                className="w-8 h-8 flex items-center justify-center text-parchment/50 hover:text-parchment hover:bg-white/10 rounded-lg transition-all font-bold text-lg leading-none"
+              >‹</Link>
+              <span className="font-serif font-bold text-parchment text-[15px] px-3 min-w-[130px] text-center capitalize">
+                {MONTHS_IT[month - 1]} {year}
+              </span>
+              <Link
+                href={`/mercatini?month=${nextMonth}&year=${nextYear}&type=${typeFilter}&region=${regionFilter}`}
+                className="w-8 h-8 flex items-center justify-center text-parchment/50 hover:text-parchment hover:bg-white/10 rounded-lg transition-all font-bold text-lg leading-none"
+              >›</Link>
+            </div>
           </div>
-          <Link
-            href={`/mercatini?month=${nextMonth}&year=${nextYear}&type=${typeFilter}&region=${regionFilter}`}
-            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-coffee hover:border-sienna hover:text-sienna transition-colors font-bold"
-          >›</Link>
-        </div>
-        <div className="flex items-center gap-2">
-          <VicinoAMe currentRegion={regionFilter} month={month} year={year} type={typeFilter} />
-          <EventsClient month={month} year={year} />
         </div>
       </div>
 
-      {/* Type filter */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {EVENT_TYPES.map(t => (
-          <Link
-            key={t.value}
-            href={`/mercatini?month=${month}&year=${year}&type=${t.value}&region=${regionFilter}`}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full border transition-all ${
-              typeFilter === t.value
-                ? 'bg-espresso text-parchment border-espresso'
-                : 'bg-white text-coffee border-border hover:border-sienna'
-            }`}
-          >
-            <span>{t.emoji}</span> {t.label}
-          </Link>
-        ))}
-      </div>
+      <div className="max-w-5xl mx-auto px-4 py-6">
 
-      {/* Region filter — tutte le 20 regioni */}
-      <div className="flex flex-wrap gap-1.5 mb-10">
-        <Link
-          href={`/mercatini?month=${month}&year=${year}&type=${typeFilter}&region=all`}
-          className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
-            regionFilter === 'all' ? 'bg-sienna text-parchment border-sienna' : 'bg-white text-muted border-border hover:border-sienna'
-          }`}
-        >Tutte</Link>
-        {ITALIAN_REGIONS.map(r => (
-          <Link
-            key={r}
-            href={`/mercatini?month=${month}&year=${year}&type=${typeFilter}&region=${encodeURIComponent(r)}`}
-            className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
-              regionFilter === r ? 'bg-sienna text-parchment border-sienna' : 'bg-white text-muted border-border hover:border-sienna'
-            }`}
-          >{r}</Link>
-        ))}
-      </div>
+        {/* Filters row */}
+        <div className="flex flex-wrap items-center gap-4 mb-6">
 
-      {/* Unified content */}
-      <Suspense fallback={
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(9)].map((_,i) => (
-            <div key={i} className="bg-cream animate-pulse rounded-2xl h-72" />
+          {/* Type filter */}
+          <div className="flex flex-wrap gap-1.5">
+            {EVENT_TYPES.map(t => (
+              <Link
+                key={t.value}
+                href={`/mercatini?month=${month}&year=${year}&type=${t.value}&region=${regionFilter}`}
+                className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                  typeFilter === t.value
+                    ? 'bg-espresso text-parchment border-espresso'
+                    : 'bg-white text-coffee border-border hover:border-espresso/30'
+                }`}
+              >
+                {t.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 ml-auto">
+            <VicinoAMe currentRegion={regionFilter} month={month} year={year} type={typeFilter} />
+            <EventsClient month={month} year={year} />
+          </div>
+        </div>
+
+        {/* Region filter */}
+        <div className="flex flex-wrap gap-1.5 mb-8 pb-6 border-b border-border">
+          <Link
+            href={`/mercatini?month=${month}&year=${year}&type=${typeFilter}&region=all`}
+            className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all ${
+              regionFilter === 'all'
+                ? 'bg-sienna text-parchment border-sienna'
+                : 'bg-white text-muted border-border hover:border-sienna hover:text-sienna'
+            }`}
+          >Tutte</Link>
+          {ITALIAN_REGIONS.map(r => (
+            <Link
+              key={r}
+              href={`/mercatini?month=${month}&year=${year}&type=${typeFilter}&region=${encodeURIComponent(r)}`}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all ${
+                regionFilter === r
+                  ? 'bg-sienna text-parchment border-sienna'
+                  : 'bg-white text-muted border-border hover:border-sienna hover:text-sienna'
+              }`}
+            >{r}</Link>
           ))}
         </div>
-      }>
-        <TuttiIContenuti searchParams={searchParams} />
-      </Suspense>
 
+        {/* Content */}
+        <Suspense fallback={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(9)].map((_,i) => (
+              <div key={i} className="bg-white/70 animate-pulse rounded-2xl h-72 border border-border" />
+            ))}
+          </div>
+        }>
+          <TuttiIContenuti searchParams={searchParams} />
+        </Suspense>
+
+      </div>
     </div>
   )
 }
