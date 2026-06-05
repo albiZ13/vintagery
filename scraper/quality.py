@@ -148,14 +148,65 @@ def _score_batch(batch: list[dict], api_key: str) -> list[dict]:
         return batch   # In caso di errore lascia passare tutto
 
 
+# ── Filtro rule-based (funziona senza API key) ────────────────────────────
+
+# Almeno una di queste keyword deve essere nel nome o descrizione
+VINTAGE_WHITELIST = {
+    'mercatino', 'mercatini', 'mercato', 'antiquariato', 'antiquario',
+    'vintage', 'usato', 'pulci', 'brocante', 'rigattiere', 'svuotacantina',
+    'svuota cantina', 'svuota-cantina', 'svendita', 'collezionismo',
+    'vinile', 'vinili', 'dischi', 'fumetti', 'collezion', 'second hand',
+    'secondhand', 'modernariato', 'flea market', 'antique', 'kilo vintage',
+    'sample sale', 'campionario', 'vendita privata', 'private sale',
+    'stock abbigliamento', 'mercatone', 'fiera antiquar',
+}
+
+# Se contiene una di queste → scarta senza eccezioni
+JUNK_BLACKLIST = {
+    'concerto', 'aperitivo', 'aperisera', 'aperipranzo',
+    'workshop', 'corso di', 'conferenza', 'convegno', 'summit',
+    'webinar', 'business round', 'business talk', 'training',
+    'spettacolo teatral', 'teatro', 'opera liric', 'dj set',
+    'live music', 'festival music', 'festival cine', 'festival vino',
+    'festival birr', 'sagra del', 'sagra di', 'cena tra', 'cena in',
+    'cena con', 'aperitivo creativ', 'wine tasting', 'degustazion',
+    'escursion', 'trekking', 'tour guided', 'tour guida', 'camminat',
+    'guided tour', 'visita guidat', 'laboratorio di', 'lezione di',
+    'corso base', 'corso avanzat', 'paint and sip', 'paint n sip',
+    'bookclub', 'book club', 'reading', 'presentazione libro',
+    'serata di', 'festa di', 'festa dell', 'festival dell',
+    'summer festival', 'opening party', 'closing party',
+}
+
+
+def _rule_based_filter(events: list[dict]) -> list[dict]:
+    """
+    Filtro deterministico senza AI.
+    Passa solo eventi che hanno almeno 1 keyword vintage E nessuna keyword junk.
+    """
+    passed = []
+    for ev in events:
+        text = f"{ev.get('name', '')} {ev.get('description', '')}".lower()
+
+        # Scarta se contiene keyword junk
+        if any(junk in text for junk in JUNK_BLACKLIST):
+            continue
+
+        # Tieni solo se contiene almeno una keyword vintage
+        if any(kw in text for kw in VINTAGE_WHITELIST):
+            passed.append(ev)
+
+    return passed
+
+
 # ── Entry point ───────────────────────────────────────────────────────────
 
 def filter_and_score(events: list[dict]) -> list[dict]:
     """
     Filtra e punteggia una lista di eventi.
     1. Scarta eventi senza campi obbligatori
-    2. Valida con Claude Haiku (se API key disponibile)
-    3. Ritorna solo eventi vintage-relevant con score >= MIN_SCORE
+    2. Filtro rule-based (whitelist vintage + blacklist junk) — sempre attivo
+    3. Valida con Claude Haiku se API key disponibile
     """
     # Step 1: campi obbligatori + normalizza tipo
     candidates = []
@@ -167,16 +218,20 @@ def filter_and_score(events: list[dict]) -> list[dict]:
     if not candidates:
         return []
 
+    # Step 2: filtro rule-based — funziona sempre, senza API key
+    candidates = _rule_based_filter(candidates)
+    if not candidates:
+        return []
+
+    # Step 3: batch AI scoring (solo se API key disponibile)
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
-        # Senza AI: passa tutto ciò che ha i campi obbligatori
         return candidates
 
-    # Step 2: batch AI scoring
     results: list[dict] = []
     for i in range(0, len(candidates), BATCH_SIZE):
-        batch   = candidates[i:i + BATCH_SIZE]
-        passed  = _score_batch(batch, api_key)
+        batch  = candidates[i:i + BATCH_SIZE]
+        passed = _score_batch(batch, api_key)
         results.extend(passed)
 
     return results
