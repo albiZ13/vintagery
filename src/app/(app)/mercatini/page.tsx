@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 import React, { Suspense } from 'react'
 import Link from 'next/link'
@@ -13,7 +13,17 @@ import { ITALIAN_REGIONS, MONTHS_IT } from '@/types'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: 'Mercatini & Eventi vintage in Italia' }
+export function generateMetadata({ searchParams }: Props): Metadata {
+  const { month, year } = getMonthYear(searchParams)
+  const regionFilter = searchParams.region ?? 'all'
+  const monthName    = MONTHS_IT[month - 1]
+  const regionSuffix = regionFilter !== 'all' ? ` in ${regionFilter}` : ' in Italia'
+  return {
+    title:       `Mercatini vintage${regionSuffix} — ${monthName} ${year} | Vintagery`,
+    description: `Mercatini dell'usato, antiquariato e fiere vintage${regionSuffix} per ${monthName} ${year}. Date, orari e info aggiornati.`,
+    alternates:  { canonical: 'https://vintagery.it/mercatini' },
+  }
+}
 
 interface Props {
   searchParams: {
@@ -25,13 +35,14 @@ interface Props {
 }
 
 const EVENT_TYPES = [
-  { value: 'all',           label: 'Tutto',         emoji: '✨' },
-  { value: 'mercatino',     label: 'Mercatini',     emoji: '🏪' },
-  { value: 'antiquariato',  label: 'Antiquariato',  emoji: '🏛️' },
-  { value: 'vinokilo',      label: 'Kilo Vintage',  emoji: '⚖️' },
-  { value: 'svuotacantina', label: 'Svuotacantina', emoji: '📦' },
-  { value: 'brand_sale',    label: 'Brand & Lusso', emoji: '👗' },
+  { value: 'all',           label: 'Tutto',            emoji: '✨' },
+  { value: 'mercatino',     label: 'Mercatini',        emoji: '🏪' },
+  { value: 'antiquariato',  label: 'Antiquariato',     emoji: '🏛️' },
+  { value: 'vinokilo',      label: 'Kilo Vintage',     emoji: '⚖️' },
+  { value: 'svuotacantina', label: 'Svuotacantina',    emoji: '📦' },
+  { value: 'brand_sale',    label: 'Brand & Lusso',    emoji: '👗' },
   { value: 'vinili',        label: 'Vinili & Fumetti', emoji: '🎵' },
+  { value: 'gratuiti',      label: 'Gratuiti',         emoji: '🆓' },
 ]
 
 function getMonthYear(sp: Props['searchParams']) {
@@ -101,13 +112,17 @@ async function TuttiIContenuti({ searchParams }: Props) {
     .select(EVENT_COLS)
     .gte('start_date', startOfMonth)
     .lte('start_date', endOfMonth)
-    .order('is_recurring', { ascending: false })   // ricorrenti prima
+    .order('is_recurring', { ascending: false })
     .order('start_date',   { ascending: true })
-  if (typeFilter   !== 'all') eventsQuery = eventsQuery.eq('event_type', typeFilter)
+  if (typeFilter === 'gratuiti') {
+    eventsQuery = eventsQuery.or('price_info.ilike.%gratuito%,price_info.ilike.%gratis%,price_info.ilike.%free%')
+  } else if (typeFilter !== 'all') {
+    eventsQuery = eventsQuery.eq('event_type', typeFilter)
+  }
   if (regionFilter !== 'all') eventsQuery = eventsQuery.eq('region', regionFilter)
 
   const [{ data: markets }, { data: events }] = await Promise.all([
-    typeFilter === 'all' || typeFilter === 'mercatino' || typeFilter === 'antiquariato'
+    typeFilter === 'all' || typeFilter === 'mercatino' || typeFilter === 'antiquariato' || typeFilter === 'gratuiti'
       ? marketsQuery.limit(500)
       : Promise.resolve({ data: [] as Market[] }),
     eventsQuery.limit(500),
@@ -119,6 +134,8 @@ async function TuttiIContenuti({ searchParams }: Props) {
   // Separa eventi ricorrenti da una-tantum
   const recurringEvents = allEvents.filter(e => e.is_recurring)
   const onetimeEvents   = allEvents.filter(e => !e.is_recurring)
+
+  const todayStr = new Date().toISOString().split('T')[0]
 
   const totalItems = allMarkets.length + allEvents.length
 
@@ -194,9 +211,19 @@ async function TuttiIContenuti({ searchParams }: Props) {
             <div key={region}>
               <RegionLabel region={region} count={onetimeByRegion[region].length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {onetimeByRegion[region].map((e: MarketEvent) => (
-                  <EventCard key={e.id} event={e} />
-                ))}
+                {onetimeByRegion[region].map((e: MarketEvent) => {
+                  const isPast = !!e.start_date && e.start_date < todayStr
+                  return (
+                    <div key={e.id} className={`relative${isPast ? ' opacity-60' : ''}`}>
+                      <EventCard event={e} />
+                      {isPast && (
+                        <span className="absolute top-3 right-3 pointer-events-none z-10 text-[9px] font-bold uppercase tracking-[0.12em] bg-white/95 text-muted/80 border border-border px-2 py-0.5 rounded-full shadow-sm">
+                          Già passato
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ))}

@@ -83,10 +83,17 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
+          {user && (
+            <Link href="/home"
+              className={cn('text-body-sm font-medium transition-colors flex items-center gap-1',
+                pathname === '/home' ? 'text-sienna' : 'text-coffee hover:text-sienna')}>
+              <LayoutDashboard size={14} /> Home
+            </Link>
+          )}
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
               className={cn('text-body-sm font-medium transition-colors flex items-center gap-1',
-                (pathname === href || pathname.startsWith(href + '/') || (href === '/mercatini' && pathname === '/home'))
+                (pathname === href || pathname.startsWith(href + '/'))
                   ? 'text-sienna' : 'text-coffee hover:text-sienna')}>
               {Icon && <Icon size={14} />}{label}
             </Link>
@@ -161,6 +168,11 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div id="mobile-menu" className="md:hidden border-t border-border bg-parchment px-4 py-4 flex flex-col gap-3">
+          {user && (
+            <Link href="/home" className="text-body-sm font-medium text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
+              <LayoutDashboard size={14} /> Home
+            </Link>
+          )}
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
               className="text-body-sm font-medium text-coffee flex items-center gap-2"
