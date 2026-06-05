@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { ArrowRight, MapPin, RefreshCw } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import EventCard from '@/components/EventCard'
+import FeaturedMarketCard from '@/components/FeaturedMarketCard'
 import ShopCard from '@/components/ShopCard'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
+import { fetchWeatherForDates } from '@/lib/weather'
 import type { MarketEvent, Shop } from '@/types'
 
 const EVENT_COLS = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips'
@@ -92,6 +94,17 @@ export default async function HomePage() {
   const hasWeekend = events.length > 0
   const hasShops   = (shops?.length ?? 0) > 0
 
+  // Meteo per il primo evento (featured)
+  const displayEvents = hasWeekend ? events : upcomingEvents
+  const featuredEvent = displayEvents[0] ?? null
+  const featuredWeather = featuredEvent
+    ? await fetchWeatherForDates(featuredEvent.city, [
+        featuredEvent.start_date,
+        ...(featuredEvent.end_date && featuredEvent.end_date !== featuredEvent.start_date
+          ? [featuredEvent.end_date] : []),
+      ].filter(Boolean) as string[])
+    : []
+
   return (
     <>
       <HomeRegionHeader
@@ -122,11 +135,19 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {(hasWeekend ? events : upcomingEvents).length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(hasWeekend ? events : upcomingEvents).map(e => (
-              <EventCard key={e.id} event={e} />
-            ))}
+        {displayEvents.length > 0 ? (
+          <div className="space-y-4">
+            {/* Card allungata per il primo evento */}
+            <FeaturedMarketCard event={displayEvents[0]} weather={featuredWeather} />
+
+            {/* Griglia per gli altri */}
+            {displayEvents.length > 1 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {displayEvents.slice(1).map(e => (
+                  <EventCard key={e.id} event={e} />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-14 border border-dashed border-border/70 rounded-2xl bg-white/50">
