@@ -160,6 +160,8 @@ export interface MarketEvent {
   categories: string[] | null
   tags: string[] | null
   tips: string | null
+  avg_rating: number | null
+  review_count: number
 }
 
 export const MONTHS_IT = [

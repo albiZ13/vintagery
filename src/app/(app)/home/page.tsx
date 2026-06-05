@@ -10,7 +10,7 @@ import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
 import { fetchWeatherForDates } from '@/lib/weather'
 import type { MarketEvent, Shop } from '@/types'
 
-const EVENT_COLS = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips'
+const EVENT_COLS = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips,avg_rating,review_count'
 const SHOP_COLS  = 'id,name,description,city,region,address,categories,image_url,is_featured,is_verified,avg_rating,review_count,followers_count,website,instagram'
 
 const CATEGORY_TILES = [
@@ -94,8 +94,26 @@ export default async function HomePage() {
   const hasWeekend = events.length > 0
   const hasShops   = (shops?.length ?? 0) > 0
 
-  // Meteo per il primo evento (featured)
-  const displayEvents = hasWeekend ? events : upcomingEvents
+  // Ordina per score quando ci sono recensioni verificate:
+  // score = avg_rating * ln(review_count + 1)
+  // Se nessun evento ha ancora recensioni, mantieni l'ordine originale
+  // (is_featured davanti, poi start_date crescente — già gestito dalla query).
+  function featuredScore(e: MarketEvent): number {
+    if (!e.review_count || !e.avg_rating) return 0
+    return e.avg_rating * Math.log(e.review_count + 1)
+  }
+
+  const rawEvents  = hasWeekend ? events : upcomingEvents
+  const anyReviews = rawEvents.some(e => e.review_count > 0)
+  const displayEvents = anyReviews
+    ? [...rawEvents].sort((a, b) => {
+        const diff = featuredScore(b) - featuredScore(a)
+        if (diff !== 0) return diff
+        // Parità di score: is_featured come tiebreak
+        return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
+      })
+    : rawEvents
+
   const featuredEvent = displayEvents[0] ?? null
   const featuredWeather = featuredEvent
     ? await fetchWeatherForDates(featuredEvent.city, [
