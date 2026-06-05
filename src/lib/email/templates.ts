@@ -3,7 +3,7 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vintagery.it'
 
-const wrapper = (content: string) => `
+const wrapper = (content: string, unsubscribeUrl?: string) => `
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -33,10 +33,8 @@ const wrapper = (content: string) => `
         <tr>
           <td style="background:#f0ece6;border-radius:0 0 12px 12px;border:1px solid #e2d8cc;border-top:0;padding:16px 32px;text-align:center;">
             <p style="margin:0;font-size:11px;color:#8b8074;font-family:system-ui,sans-serif;">
-              Hai ricevuto questa email perché hai attivato le notifiche su Vintagery.<br/>
-              <a href="${BASE_URL}/impostazioni" style="color:#8b4513;text-decoration:underline;">Gestisci le tue preferenze</a>
-              &nbsp;·&nbsp;
-              <a href="${BASE_URL}/impostazioni" style="color:#8b4513;text-decoration:underline;">Disiscriviti</a>
+              Hai ricevuto questa email perché sei iscritto agli aggiornamenti di Vintagery.<br/>
+              <a href="${unsubscribeUrl ?? BASE_URL + '/impostazioni'}" style="color:#8b4513;text-decoration:underline;">Disiscriviti</a>
             </p>
           </td>
         </tr>
@@ -122,5 +120,79 @@ export function newMarketEmail(opts: {
   return {
     subject: `Nuovo mercatino vintage a ${opts.marketCity}`,
     html:    wrapper(content),
+  }
+}
+
+const MONTHS_IT = [
+  'Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+  'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre',
+]
+
+export function monthlyDigestEmail(opts: {
+  email: string
+  region: string | null
+  month: number
+  year: number
+  events: {
+    id: string
+    name: string
+    city: string
+    start_date: string
+    event_type: string
+    price_info: string | null
+    is_recurring: boolean
+  }[]
+  unsubscribeToken: string
+}) {
+  const monthName    = MONTHS_IT[opts.month - 1]
+  const regionLabel  = opts.region ?? 'tutta Italia'
+  const unsubUrl     = `${BASE_URL}/api/unsubscribe?token=${opts.unsubscribeToken}`
+
+  const eventRows = opts.events.map(e => {
+    const d     = new Date(e.start_date + 'T12:00:00')
+    const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+    const free  = /gratuito|gratis|free/i.test(e.price_info ?? '')
+    return `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0ece6;vertical-align:top;">
+          <a href="${BASE_URL}/mercatini/eventi/${e.id}"
+             style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1c2e4a;text-decoration:none;">
+            ${e.name}
+          </a>
+          <br/>
+          <span style="font-family:system-ui,sans-serif;font-size:12px;color:#8b8074;">
+            📍 ${e.city} &nbsp;·&nbsp; 🗓 ${label}
+            ${free ? ' &nbsp;·&nbsp; <span style="color:#15803d;">Gratuito</span>' : e.price_info ? ` &nbsp;·&nbsp; ${e.price_info}` : ''}
+          </span>
+        </td>
+      </tr>
+    `
+  }).join('')
+
+  const content = `
+    <h1 style="margin:0 0 6px;font-size:22px;color:#1c2e4a;font-family:Georgia,serif;">
+      Calendario vintage — ${monthName} ${opts.year}
+    </h1>
+    <p style="margin:0 0 24px;font-size:13px;color:#8b8074;font-family:system-ui,sans-serif;">
+      ${opts.events.length} appuntament${opts.events.length === 1 ? 'o' : 'i'} in ${regionLabel}
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${eventRows}
+    </table>
+
+    <div style="margin-top:28px;">
+      <a href="${BASE_URL}/mercatini"
+         style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;
+                font-family:system-ui,sans-serif;font-size:13px;font-weight:600;
+                padding:11px 26px;border-radius:8px;">
+        Tutto il calendario →
+      </a>
+    </div>
+  `
+
+  return {
+    subject: `Calendario vintage ${monthName} ${opts.year}${opts.region ? ` — ${opts.region}` : ''}`,
+    html:    wrapper(content, unsubUrl),
   }
 }

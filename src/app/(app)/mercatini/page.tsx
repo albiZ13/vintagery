@@ -9,6 +9,7 @@ import MarketCard from '@/components/MarketCard'
 import RecurringMarketCard from '@/components/RecurringMarketCard'
 import EventsClient from '@/components/EventsClient'
 import VicinoAMe from '@/components/VicinoAMe'
+import SubscribeWidget from '@/components/SubscribeWidget'
 import { ITALIAN_REGIONS, MONTHS_IT } from '@/types'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
@@ -307,6 +308,7 @@ export default function MercatiniPage({ searchParams }: Props) {
 
           {/* Actions */}
           <div className="flex items-center gap-2 ml-auto">
+            <SubscribeWidget initialRegion={regionFilter !== 'all' ? regionFilter : undefined} />
             <VicinoAMe currentRegion={regionFilter} month={month} year={year} type={typeFilter} />
             <EventsClient month={month} year={year} />
           </div>
