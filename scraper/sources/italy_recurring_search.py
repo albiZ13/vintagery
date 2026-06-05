@@ -133,19 +133,56 @@ _SCHEDULE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r'second\s+sunday',    re.I),               'second_sunday'),
 ]
 
-# Directory italiane specializzate in mercati ricorrenti
+# Directory italiane specializzate in mercati ricorrenti — fonti dal PDF
 _DIRECTORY_SEARCHES: list[str] = [
+    # Aggregatori nazionali (PDF: fonti primarie)
+    'site:mercatiniantiquariato.it mercatino antiquariato {region} mensile',
+    'site:eventiesagre.it mercatino antiquariato {region} mensile ricorrente',
+    'site:cosedicasa.com mercatino antiquariato {region} ogni domenica',
     'site:fierionline.it mercatino antiquariato ricorrente {region}',
-    'site:eventiesagre.it mercatino antiquariato {region} mensile',
-    'site:mercatinousato.it mercatino antiquariato {region}',
-    'site:antiquariato.it fiera antiquariato ricorrente {region}',
+    'site:mercatinousato.it mercatino {region} ricorrente',
+    'site:mercatinoitalia.it mercatino {region}',
+    # Portali regionali (PDF: fonti specializzate)
+    'site:arteRicerca.it mercatino antiquariato {region}',
+    'site:italy2u.com mercatino antiquariato {region}',
     'site:gliamantidellantico.com fiera antiquariato {region}',
-    'site:mercatinoitaliano.it mercatino {region}',
+    'site:nonsoloferrivecchi.it mercatino {region}',  # Veneto specializzato
+    # Portali turistici regionali (PDF: VisitTuscany, UmbriaTourism, ecc.)
+    'site:visittuscany.com mercatino antiquariato {region}',
+    'site:umbriatourism.it mercato antiquariato {region}',
+    'site:emiliaromagnaturismo.it mercatino antiquariato {region}',
 ]
 
+# Siti regionali specifici per provincia (PDF: portali locali verificati)
+_REGIONAL_SITES: dict[str, list[str]] = {
+    'Emilia-Romagna': [
+        'site:bolognawelcome.it mercatino antiquariato',
+        'site:reggioemeliawelcome.it mercatino antiquariato',
+        'site:emiliaromagnaturismo.it mercatino',
+    ],
+    'Toscana': [
+        'site:visittuscany.com mercatino antiquariato vintage',
+        'fiera antiquariato Toscana mensile ricorrente',
+    ],
+    'Veneto': [
+        'site:nonsoloferrivecchi.it mercatino Veneto mensile',
+        'site:salutidavicenza.it mercatino antiquariato',
+    ],
+    'Umbria': [
+        'site:umbriatourism.it mercatino antiquariato mensile',
+    ],
+    'Campania': [
+        'mercato Resina Ercolano vintage ogni domenica sabato',
+        'mercatini delle pulci Napoli mensile ricorrente',
+    ],
+}
+
 _PROVINCE_SEARCHES: list[str] = [
+    # Ricerche mirate per provincia (PDF: approccio operativo consigliato)
     'mercatino antiquariato "{province}" mensile ricorrente ogni domenica',
     'fiera antiquariato "{province}" ricorrente settimanale mensile',
+    'site:eventiesagre.it mercatino "{province}"',
+    'site:cosedicasa.com mercatino "{province}" antiquariato',
 ]
 
 
@@ -489,6 +526,66 @@ def _scrape_mercatinoitaliano(region: str, year: int, month: int) -> list[dict]:
     return results
 
 
+def _scrape_mercatiniantiquariato(region: str, year: int, month: int) -> list[dict]:
+    """Scraping mercatiniantiquariato.it — fonte primaria del PDF."""
+    region_slug = _norm(region).replace(' ', '%20')
+    urls = [
+        f'https://www.mercatiniantiquariato.it/mercatini-antiquariato/{region_slug}/',
+        f'https://www.mercatiniantiquariato.it/?regione={region_slug}',
+    ]
+    results = []
+    for url in urls:
+        text = _fetch_page(url)
+        if not text or len(text) < 200:
+            continue
+        entries = re.split(r'(?=Mercatino|Fiera|Mercato|Antiquariato)', text)
+        for entry in entries:
+            if len(entry) < 30:
+                continue
+            if not (_is_vintage(entry) and _is_recurring(entry)):
+                continue
+            city = _extract_city_from_text(entry, region)
+            name_m = re.match(r'([A-Z][^\n.]{5,80})', entry.strip())
+            name = name_m.group(1).strip() if name_m else f'Mercatino Antiquariato – {city}'
+            if len(name) < 5:
+                continue
+            results.append(_build_event(name, city, region, entry[:500], url, year, month))
+        if results:
+            break
+    time.sleep(0.5)
+    return results
+
+
+def _scrape_cosedicasa(region: str, year: int, month: int) -> list[dict]:
+    """Scraping cosedicasa.com/mercatini — PDF: calendario aggiornato per regione."""
+    region_slug = _norm(region).replace(' ', '-')
+    urls = [
+        f'https://www.cosedicasa.com/mercatini/{region_slug}/',
+        f'https://www.cosedicasa.com/mercatini/?regione={region_slug}',
+    ]
+    results = []
+    for url in urls:
+        text = _fetch_page(url)
+        if not text or len(text) < 200:
+            continue
+        entries = re.split(r'(?=Mercatino|Fiera|Mercato|Antiquariato)', text)
+        for entry in entries:
+            if len(entry) < 30:
+                continue
+            if not (_is_vintage(entry) and _is_recurring(entry)):
+                continue
+            city = _extract_city_from_text(entry, region)
+            name_m = re.match(r'([A-Z][^\n.]{5,80})', entry.strip())
+            name = name_m.group(1).strip() if name_m else f'Mercatino – {city}'
+            if len(name) < 5:
+                continue
+            results.append(_build_event(name, city, region, entry[:500], url, year, month))
+        if results:
+            break
+    time.sleep(0.5)
+    return results
+
+
 # ── Ricerca DDG per directory specializzate ────────────────────────────────
 
 def _ddg_directory_search(region: str, year: int, month: int) -> list[dict]:
@@ -559,6 +656,12 @@ def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
             if out:
                 yield out
 
+        # Fase 1b: scraping mercatiniantiquariato.it (PDF: fonte primaria)
+        for ev in _scrape_mercatiniantiquariato(region, target_year, target_month):
+            out = _emit(ev)
+            if out:
+                yield out
+
         for ev in _scrape_eventiesagre(region, target_year, target_month):
             out = _emit(ev)
             if out:
@@ -569,13 +672,33 @@ def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
             if out:
                 yield out
 
-        # Fase 1b: DDG su directory specializzate per regione
+        # Fase 1c: Cose di Casa — calendario settimanale per regione (PDF: fonte chiave)
+        for ev in _scrape_cosedicasa(region, target_year, target_month):
+            out = _emit(ev)
+            if out:
+                yield out
+
+        # Fase 1d: DDG su directory specializzate per regione
         for ev in _ddg_directory_search(region, target_year, target_month):
             out = _emit(ev)
             if out:
                 yield out
 
-        # Fase 2: per ogni provincia, 2 DDG searches mirate
+        # Fase 1e: siti regionali specifici (PDF: BolognaWelcome, VisitTuscany, ecc.)
+        for query in _REGIONAL_SITES.get(region, []):
+            for r in _ddg_search(query, max_results=6):
+                snippet = f"{r.get('title','')} {r.get('body','')}"
+                if not (_is_vintage(snippet) and _is_recurring(snippet)):
+                    continue
+                city = _extract_city_from_text(snippet, region)
+                name = re.sub(r'\s+', ' ', r.get('title', '').strip())[:120]
+                if len(name) < 5:
+                    continue
+                out = _emit(_build_event(name, city, region, snippet[:500], r.get('href', ''), target_year, target_month))
+                if out:
+                    yield out
+
+        # Fase 2: per ogni provincia, DDG searches mirate
         for province in provinces:
             print(f'[italy_recurring]   Provincia: {province}')
             for ev in _ddg_province_search(province, region, target_year, target_month):

@@ -74,6 +74,11 @@ QUERY_TEMPLATES = [
     'site:secretsalesgirl.it {city} {month} {year}',
     'site:missamplesale.com {city} {month}',
     'site:milanosamplesale.com {city} {month} {year}',
+    # Qlhype Tour (PDF: format itinerante Milano Roma Brescia Firenze Napoli Bologna Treviso Caserta)
+    'site:qlhype.it private sale {city} {month} {year}',
+    '"qlhype" "private sale" {city} {month} {year}',
+    # White Sale / Private Fashion Tour (PDF: Milano e tappe nazionali)
+    '"white sale" OR "private fashion tour" {city} {month} {year}',
     # Tipi di evento
     '"vendita privata" OR "private sale" abbigliamento {city} {month} {year}',
     '"sample sale" moda brand {city} {year}',
@@ -383,6 +388,8 @@ def _scrape_brand_sale_sites(target_year: int, target_month: int) -> list[dict]:
         f'https://www.missamplesale.com/selected-for-you.html',
         f'https://milanosamplesale.com/en/collections/private-salt',
         f'https://samplelover.it/en/collections/souvenir-shop',
+        f'https://qlhype.it/eventi/',           # PDF: format itinerante nazionale
+        f'https://qlhype.it/private-sale/',
     ]
 
     all_cities_re = re.compile(

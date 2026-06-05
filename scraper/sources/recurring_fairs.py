@@ -1149,6 +1149,317 @@ KNOWN_FAIRS = [
         'categories': ['Antiquariato', 'Ceramiche'],
         'tags': ['catania', 'sicilia', 'settimanale', 'domenica'],
     },
+
+    # ─── NUOVI MERCATI DA RICERCA APPROFONDITA ────────────────────────────────
+
+    # CAMPANIA
+    {
+        'name': 'Mercato di Resina – Ercolano',
+        'description': (
+            'Il mercato vintage più famoso del Sud Italia, noto come "il paradiso del vintage". '
+            'Ogni sabato e domenica mattina a Ercolano (NA). '
+            'Abbigliamento vintage anni \'50–\'90, accessori, borse, scarpe firmate a prezzi bassi. '
+            'Meta imperdibile per cacciatori di vintage da tutta Italia.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Ercolano',
+        'region': 'Campania',
+        'address': 'Via Pugliano, Ercolano (NA)',
+        'schedule': 'every_sunday_and_saturday',
+        'start_time': '07:00',
+        'end_time': '13:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': True,
+        'categories': ['Vintage', 'Abbigliamento', 'Accessori'],
+        'tags': ['ercolano', 'resina', 'campania', 'settimanale', 'vintage'],
+    },
+
+    # PIEMONTE — provincia di Alessandria
+    {
+        'name': 'Mercatino Antiquariato – Casale Monferrato',
+        'description': (
+            'Mercatino mensile dell\'antiquariato e del collezionismo a Casale Monferrato. '
+            'Terza domenica del mese in Piazza Mazzini. '
+            'Uno degli appuntamenti di riferimento per l\'antiquariato piemontese.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Casale Monferrato',
+        'region': 'Piemonte',
+        'address': 'Piazza Mazzini, Casale Monferrato (AL)',
+        'schedule': 'third_weekend',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Collezionismo'],
+        'tags': ['casale monferrato', 'piemonte', 'alessandria', 'mensile'],
+    },
+    {
+        'name': 'Mercatino Antiquariato – Moncalieri',
+        'description': (
+            'Mercato mensile dell\'antiquariato e del modernariato a Moncalieri (TO). '
+            'Secondo sabato del mese nel centro storico.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Moncalieri',
+        'region': 'Piemonte',
+        'address': 'Centro storico, Moncalieri (TO)',
+        'schedule': 'second_saturday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Modernariato'],
+        'tags': ['moncalieri', 'piemonte', 'torino', 'mensile'],
+    },
+
+    # UMBRIA
+    {
+        'name': 'Antiquariato sotto le mura – Amelia',
+        'description': (
+            'Mercato mensile dell\'antiquariato e del collezionismo ad Amelia (TR), '
+            'nel suggestivo borgo medievale umbro con le mura poligonali. '
+            'Seconda domenica del mese. Oggetti d\'epoca, modernariato, ceramiche.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Amelia',
+        'region': 'Umbria',
+        'address': 'Centro storico, Amelia (TR)',
+        'schedule': 'second_sunday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': 'https://www.umbriatourism.it',
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Collezionismo'],
+        'tags': ['amelia', 'umbria', 'terni', 'mensile'],
+    },
+    {
+        'name': 'Mercato Antiquariato Collezionismo – Pissignano',
+        'description': (
+            'Mercato mensile di antiquariato, usato e collezionismo a Pissignano '
+            '(Campello sul Clitunno, PG). Quarta domenica del mese. '
+            'Ambiente caratteristico del borgo umbro.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Campello sul Clitunno',
+        'region': 'Umbria',
+        'address': 'Pissignano, Campello sul Clitunno (PG)',
+        'schedule': 'fourth_sunday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato', 'Usato', 'Collezionismo'],
+        'tags': ['pissignano', 'campello clitunno', 'umbria', 'perugia', 'mensile'],
+    },
+
+    # VENETO — province minori
+    {
+        'name': 'Mercatino Antiquariato – Vicenza',
+        'description': (
+            'Mercato mensile dell\'antiquariato nel centro storico di Vicenza. '
+            'Prima domenica del mese in Piazza dei Signori.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Vicenza',
+        'region': 'Veneto',
+        'address': 'Piazza dei Signori, Vicenza',
+        'schedule': 'first_sunday_and_prev_saturday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['vicenza', 'veneto', 'mensile'],
+    },
+    {
+        'name': 'Mercatino Antiquariato – Treviso',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Treviso. '
+            'Seconda domenica del mese nel centro storico.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Treviso',
+        'region': 'Veneto',
+        'address': 'Centro storico, Treviso',
+        'schedule': 'second_sunday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['treviso', 'veneto', 'mensile'],
+    },
+
+    # EMILIA-ROMAGNA — province minori
+    {
+        'name': 'Mercatino Antiquariato – Ferrara',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Ferrara, '
+            'prima domenica del mese nel centro storico UNESCO.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Ferrara',
+        'region': 'Emilia-Romagna',
+        'address': 'Centro storico, Ferrara',
+        'schedule': 'first_sunday_and_prev_saturday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['ferrara', 'emilia-romagna', 'mensile'],
+    },
+    {
+        'name': 'Mercatino Antiquariato – Rimini',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Rimini. '
+            'Terza domenica del mese in centro città.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Rimini',
+        'region': 'Emilia-Romagna',
+        'address': 'Centro storico, Rimini',
+        'schedule': 'third_weekend',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['rimini', 'emilia-romagna', 'mensile'],
+    },
+
+    # TOSCANA — aggiuntivi
+    {
+        'name': 'Mercatino Antiquariato – Siena',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Siena. '
+            'Terza domenica del mese in centro storico UNESCO.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Siena',
+        'region': 'Toscana',
+        'address': 'Centro storico, Siena',
+        'schedule': 'third_weekend',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['siena', 'toscana', 'mensile'],
+    },
+
+    # LIGURIA — aggiuntivi
+    {
+        'name': 'Mercatino Antiquariato – Savona',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Savona. '
+            'Seconda domenica del mese nel centro storico.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Savona',
+        'region': 'Liguria',
+        'address': 'Centro storico, Savona',
+        'schedule': 'second_sunday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['savona', 'liguria', 'mensile'],
+    },
+
+    # PUGLIA — aggiuntivi
+    {
+        'name': 'Mercatino Antiquariato – Lecce',
+        'description': (
+            'Mercato mensile dell\'antiquariato nel centro barocco di Lecce. '
+            'Prima domenica del mese.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Lecce',
+        'region': 'Puglia',
+        'address': 'Centro storico, Lecce',
+        'schedule': 'first_sunday_and_prev_saturday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['lecce', 'puglia', 'mensile'],
+    },
+
+    # SICILIA — aggiuntivi
+    {
+        'name': 'Mercatino Antiquariato – Messina',
+        'description': (
+            'Mercato mensile dell\'antiquariato a Messina. '
+            'Seconda domenica del mese in centro città.'
+        ),
+        'event_type': 'antiquariato',
+        'city': 'Messina',
+        'region': 'Sicilia',
+        'address': 'Centro storico, Messina',
+        'schedule': 'second_sunday',
+        'start_time': '08:00',
+        'end_time': '18:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': False,
+        'is_featured': False,
+        'categories': ['Antiquariato'],
+        'tags': ['messina', 'sicilia', 'mensile'],
+    },
 ]
 
 
