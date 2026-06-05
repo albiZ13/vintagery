@@ -98,8 +98,16 @@ TUTTI gli eventi di mercatini, fiere antiquariato, svuotacantine, \
 vinile/dischi, fumetti, collezionismo nella regione {region} per {month} {year}.
 
 INCLUDI SOLO: mercatini usato/vintage, antiquariato, svuotacantine, \
-fiere del vinile, fumetti, collezionismo, mercati delle pulci, brocante.
+fiere del vinile, fumetti, collezionismo, mercati delle pulci, brocante, \
+svendite private di brand, vendite in stock, mercati delle pulci.
 ESCLUDI: concerti, sagre cibo, eventi sportivi, fiere nuovi prodotti.
+
+REGOLA CRITICA — is_recurring:
+- true SOLO SE il mercato ha cadenza fissa ripetuta ogni mese o ogni settimana.
+  Esempi: "ogni seconda domenica del mese", "ogni martedì", "mensile", "settimanale".
+- false per TUTTI gli altri: Vinokilo, svuotacantine, svendite private di brand,
+  eventi speciali, fiere una tantum, qualsiasi evento che non si ripete ogni mese/settimana.
+  In caso di dubbio: false.
 
 TESTO:
 {content}
@@ -111,7 +119,7 @@ Rispondi SOLO con array JSON:
   "start_date": "YYYY-MM-DD o null",
   "end_date": "YYYY-MM-DD o null",
   "start_time": "HH:MM o null",
-  "event_type": "antiquariato|mercatino|svuotacantina|vinile|fumetti|collezionismo",
+  "event_type": "antiquariato|mercatino|svuotacantina|vinile|fumetti|collezionismo|brand_sale|svendita",
   "is_recurring": true/false,
   "address": "indirizzo o null",
   "price_info": "prezzo o null",
@@ -299,7 +307,11 @@ def _rule_extract(text: str, source_url: str, year: int, month: int,
         'is_verified': False,
         'is_featured': False,
         'is_recurring': bool(re.search(
-            r'ogni\s+(?:prima|seconda|terza|ultima|domenica|sabato|mese)', text, re.I
+            r'\bogni\s+(?:prima|seconda|terza|quarta|ultima)\s+(?:domenica|sabato|lunedì|martedì|mercoledì|giovedì|venerdì)\b'
+            r'|\bogni\s+(?:domenica|sabato|martedì|mercoledì|giovedì|venerdì|lunedì)\b'
+            r'|\b(?:mensile|settimanale|bimestrale)\b'
+            r'|\bcadenza\s+mensile\b',
+            text, re.IGNORECASE
         )),
         'categories':  [],
         'tags':        ['websearch-v3', urlparse(source_url).netloc.lstrip('www.')],

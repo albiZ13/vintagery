@@ -39,31 +39,65 @@ MONTH_NAMES_IT = [
 ]
 
 CITIES = [
-    ('Milano',  'Lombardia'),
-    ('Roma',    'Lazio'),
-    ('Torino',  'Piemonte'),
-    ('Napoli',  'Campania'),
-    ('Firenze', 'Toscana'),
-    ('Bologna', 'Emilia-Romagna'),
-    ('Venezia', 'Veneto'),
-    ('Bari',    'Puglia'),
-    ('Genova',  'Liguria'),
+    ('Milano',   'Lombardia'),
+    ('Roma',     'Lazio'),
+    ('Torino',   'Piemonte'),
+    ('Napoli',   'Campania'),
+    ('Firenze',  'Toscana'),
+    ('Bologna',  'Emilia-Romagna'),
+    ('Venezia',  'Veneto'),
+    ('Verona',   'Veneto'),
+    ('Padova',   'Veneto'),
+    ('Bari',     'Puglia'),
+    ('Genova',   'Liguria'),
+    ('Palermo',  'Sicilia'),
+    ('Catania',  'Sicilia'),
+    ('Bergamo',  'Lombardia'),
+    ('Brescia',  'Lombardia'),
+    ('Modena',   'Emilia-Romagna'),
+    ('Parma',    'Emilia-Romagna'),
+    ('Pescara',  'Abruzzo'),
+]
+
+# Siti specializzati in svendite private da scansionare direttamente
+BRAND_SALE_SITES = [
+    'secretsalesgirl.it',
+    'missamplesale.com',
+    'milanosamplesale.com',
+    'alefsamplesale.it',
+    'samplelover.it',
+    'designbestmagazine.com',
 ]
 
 QUERY_TEMPLATES = [
+    # Aggregatori specializzati
+    'site:secretsalesgirl.it {city} {month} {year}',
+    'site:missamplesale.com {city} {month}',
+    'site:milanosamplesale.com {city} {month} {year}',
+    # Tipi di evento
+    '"vendita privata" OR "private sale" abbigliamento {city} {month} {year}',
+    '"sample sale" moda brand {city} {year}',
+    '"vendita campionario" abbigliamento {city} {month} {year}',
+    '"svendita stock" brand lusso {city} {month} {year}',
+    '"family friends" moda brand {city} {month} {year}',
+    '"svendita off price" {city} {month} {year}',
+    '"svendita griffato" {city} {month} {year}',
+    # Brand noti che fanno private sale in Italia
+    'Philipp Plein "vendita privata" OR "private sale" {city} {year}',
+    'DSQUARED2 "private sale" OR "svendita" {city} {year}',
+    'Furla "friends family" OR "private sale" {city} {year}',
+    'Ballantyne "private sale" {city} {year}',
     'fair price vintage evento {city} {month} {year}',
-    'vendita campionario abbigliamento {city} {month} {year}',
-    'svendita stock brand lusso {city} {month} {year}',
-    'sample sale moda {city} {year}',
-    'vintage kilo event {city} {month} {year}',
-    'svendita griffato {city} {month} {year}',
+    '"svendita design" OR "design sale" {city} {month} {year}',
     'outlet privato abbigliamento {city} {year}',
 ]
 
 BRAND_SALE_KEYWORDS = {
     'campionario', 'sample sale', 'svendita stock', 'svendita brand',
     'griffato', 'lusso', 'designer', 'outlet privato', 'vendita privata',
-    'fine stagione', 'stock abbigliamento',
+    'fine stagione', 'stock abbigliamento', 'private sale', 'family friends',
+    'friends family', 'svendita off price', 'off price', 'svendita privata',
+    'svuota magazzino', 'fine serie', 'liquidazione stock',
 }
 
 FAIR_PRICE_KEYWORDS = {
@@ -249,7 +283,7 @@ def _scrape_fair_price_vintage(target_year: int, target_month: int) -> list[dict
                     'source_url':   url,
                     'is_verified':  False,
                     'is_featured':  False,
-                    'is_recurring': True,
+                    'is_recurring': False,
                     'categories':   ['Vintage', 'Abbigliamento'],
                     'tags':         ['fair_price', 'flat_price', 'vintage', city.lower()],
                 })
@@ -338,6 +372,83 @@ def _scrape_known_aggregators(target_year: int, target_month: int) -> list[dict]
     return events
 
 
+def _scrape_brand_sale_sites(target_year: int, target_month: int) -> list[dict]:
+    """Scrape diretto dei siti specializzati in svendite private italiani."""
+    month_name = MONTH_NAMES_IT[target_month]
+    events: list[dict] = []
+    fetcher = Fetcher()
+
+    site_urls = [
+        f'https://secretsalesgirl.it/calendario/',
+        f'https://www.missamplesale.com/selected-for-you.html',
+        f'https://milanosamplesale.com/en/collections/private-salt',
+        f'https://samplelover.it/en/collections/souvenir-shop',
+    ]
+
+    all_cities_re = re.compile(
+        r'\b(Milano|Roma|Torino|Napoli|Firenze|Bologna|Venezia|Verona|Padova|'
+        r'Bari|Genova|Palermo|Catania|Bergamo|Brescia|Modena|Parma|Pescara)\b',
+        re.IGNORECASE,
+    )
+
+    for url in site_urls:
+        try:
+            page = fetcher.get(url, stealthy_headers=True, timeout=12)
+            raw_html = str(page.content) if hasattr(page, 'content') else ''
+            if len(raw_html) < 500:
+                continue
+
+            text = re.sub(r'<[^>]+>', ' ', raw_html)
+            text = re.sub(r'\s+', ' ', text)
+
+            # Cerca blocchi di testo vicino al mese target
+            month_pos = [m.start() for m in re.finditer(month_name, text, re.IGNORECASE)]
+            for pos in month_pos[:8]:
+                chunk = text[max(0, pos - 200):pos + 400]
+                if not any(kw in chunk.lower() for kw in EVENT_KEYWORDS):
+                    continue
+                start_date = _parse_date(chunk, target_year, target_month)
+                if not start_date:
+                    continue
+
+                city_m = all_cities_re.search(chunk)
+                city = city_m.group(1) if city_m else 'Milano'
+
+                name_m = re.search(r'([A-Z][A-Za-zÀ-ú\s&+\-]{5,60}?)(?:\s*[-–|,]|\s+\d{1,2})', chunk)
+                name = name_m.group(1).strip() if name_m else f'Svendita Privata – {city}'
+
+                if len(name) < 5:
+                    continue
+
+                events.append({
+                    'name':         name[:150],
+                    'description':  chunk[:300].strip(),
+                    'event_type':   _guess_type(chunk),
+                    'city':         city,
+                    'region':       city_to_region(city),
+                    'address':      None,
+                    'start_date':   start_date,
+                    'end_date':     None,
+                    'start_time':   None,
+                    'end_time':     None,
+                    'website':      url,
+                    'instagram':    None,
+                    'price_info':   None,
+                    'organizer':    None,
+                    'source_url':   url,
+                    'is_verified':  False,
+                    'is_featured':  False,
+                    'is_recurring': False,
+                    'categories':   ['Moda', 'Brand'],
+                    'tags':         ['brand_sale', 'private_sale', urlparse(url).netloc.lstrip('www.')],
+                })
+
+        except Exception as e:
+            print(f'[brand_sales] brand_sale_sites {url}: {e}')
+
+    return events
+
+
 # ── Main scrape ───────────────────────────────────────────────────────────────
 
 def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
@@ -351,14 +462,21 @@ def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
             seen.add(key)
             yield ev
 
-    # 2 — Known aggregators
+    # 2 — Siti specializzati svendite private (secretsalesgirl, missamplesale, ecc.)
+    for ev in _scrape_brand_sale_sites(target_year, target_month):
+        key = f'{ev["name"]}:{ev["start_date"]}:{ev["city"]}'
+        if key not in seen:
+            seen.add(key)
+            yield ev
+
+    # 3 — Known aggregators
     for ev in _scrape_known_aggregators(target_year, target_month):
         key = f'{ev["name"]}:{ev["start_date"]}:{ev["city"]}'
         if key not in seen:
             seen.add(key)
             yield ev
 
-    # 3 — DuckDuckGo search (top cities, rotated monthly)
+    # 4 — DuckDuckGo search (tutte le città, query rotated monthly)
     offset = (target_month - 1) % 3
     cities_batch = CITIES[offset * 3:(offset + 1) * 3] + CITIES[:2]  # always Milano + Roma
     cities_deduped = list({c[0]: c for c in cities_batch}.values())

@@ -136,7 +136,7 @@ def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
                 'source_url': source_url or url,
                 'is_verified': True,
                 'is_featured': False,
-                'is_recurring': True,
+                'is_recurring': False,
                 'categories': ['Antiquariato', 'Collezionismo'],
                 'tags': ['neventum', event_type, 'fiera'],
             }

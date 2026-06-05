@@ -148,7 +148,7 @@ def scrape(target_year: int, target_month: int) -> Generator[dict, None, None]:
             'source_url':  url,
             'is_verified': True,
             'is_featured': False,
-            'is_recurring': True,
+            'is_recurring': False,
             'categories':  ['Abbigliamento', 'Vintage', 'Kilo'],
             'tags':        ['vinokilo', 'kilo', 'vintage', 'abbigliamento'],
         }
