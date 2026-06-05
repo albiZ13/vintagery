@@ -161,10 +161,15 @@ export default async function EventoDetailPage({ params }: Props) {
           {event.address && (
             <div className="bg-white border border-border rounded-xl px-4 py-3 col-span-2">
               <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted mb-1">Dove</p>
-              <p className="text-[13px] font-semibold text-espresso flex items-start gap-1.5">
-                <MapPin size={13} className="text-muted/60 mt-0.5 flex-shrink-0" />
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[13px] font-semibold text-espresso flex items-start gap-1.5 hover:text-sienna transition-colors group"
+              >
+                <MapPin size={13} className="text-muted/60 mt-0.5 flex-shrink-0 group-hover:text-sienna transition-colors" />
                 {event.address}
-              </p>
+              </a>
             </div>
           )}
           {event.organizer && (
