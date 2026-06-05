@@ -252,6 +252,28 @@ def _extract_with_ai(content: str, region: str, month_name: str,
         return []
 
 
+_NAME_JUNK = re.compile(
+    r'\||\bMenu\b|\bCerca\b|\bAccedi\b|\bRegistrati\b|\bPassword\b'
+    r'|\d{1,2}\s+(?:giorni|ore|minuti)\s+fa'
+    r'|\bgiugno\s+\d{4}\b|\bluglio\s+\d{4}\b|\bagosto\s+\d{4}\b'
+    r'|\bGennaio\b|\bFebbraio\b|\bMarzo\b|\bAprile\b|\bMaggio\b'
+    r'|\bSettebre\b|\bOttobre\b|\bNovembre\b|\bDicembre\b'
+    r'|\belenco\b|\bcalendario\b|\beventi\b|\bsagre\b',
+    re.IGNORECASE,
+)
+
+def _is_valid_market_name(name: str) -> bool:
+    """Scarta nomi che sono titoli di pagina troncati o metadata DDG."""
+    if len(name) < 8 or len(name) > 80:
+        return False
+    if _NAME_JUNK.search(name):
+        return False
+    # Il nome deve contenere almeno una keyword di mercato
+    keywords = {'mercatino', 'mercato', 'fiera', 'antiquariato', 'vintage',
+                'usato', 'pulci', 'vinile', 'fumetti', 'collezionismo', 'svuota'}
+    return any(k in name.lower() for k in keywords)
+
+
 def _rule_extract(text: str, source_url: str, year: int, month: int,
                   city: str, region: str) -> list[dict]:
     """Estrazione rule-based veloce da snippet."""
@@ -270,6 +292,10 @@ def _rule_extract(text: str, source_url: str, year: int, month: int,
     lines = [l.strip() for l in text.split('\n') if len(l.strip()) > 8]
     name = lines[0][:120] if lines else text[:80]
     name = re.sub(r'\s+', ' ', name).rstrip('.,:-')
+
+    # Valida il nome — scarta titoli di pagina e metadata DDG
+    if not _is_valid_market_name(name):
+        return []
 
     city_m = re.search(
         r'\b(Milano|Roma|Torino|Napoli|Bologna|Firenze|Venezia|Genova|'
