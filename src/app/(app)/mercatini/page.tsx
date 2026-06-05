@@ -6,6 +6,7 @@ import { MapPin, Calendar, Sparkles } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import EventCard, { type MarketEvent } from '@/components/EventCard'
 import MarketCard from '@/components/MarketCard'
+import RecurringMarketCard from '@/components/RecurringMarketCard'
 import EventsClient from '@/components/EventsClient'
 import VicinoAMe from '@/components/VicinoAMe'
 import { ITALIAN_REGIONS, MONTHS_IT } from '@/types'
@@ -171,7 +172,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
                     <MarketCard key={m.id} market={m} compact />
                   ))}
                   {monthly.map((e: MarketEvent) => (
-                    <EventCard key={e.id} event={e} />
+                    <RecurringMarketCard key={e.id} event={e} />
                   ))}
                 </div>
               </div>
