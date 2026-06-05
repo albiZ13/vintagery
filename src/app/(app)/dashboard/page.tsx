@@ -10,18 +10,20 @@ import type { Shop, ShopPost } from '@/types'
 import { ITALIAN_REGIONS, VINTAGE_CATEGORIES } from '@/types'
 import {
   Store, Save, Plus, Trash2, Crown, BadgeCheck,
-  BarChart2, Tag, Loader2, AlertCircle, Building2,
+  BarChart2, Tag, Loader2, AlertCircle, Building2, MapPin,
 } from 'lucide-react'
+import MarketParticipationManager from '@/components/MarketParticipationManager'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-type Tab = 'profilo' | 'post' | 'stats' | 'piano'
+type Tab = 'profilo' | 'post' | 'mercati' | 'stats' | 'piano'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'profilo', label: 'Profilo',     icon: <Store size={15} aria-hidden /> },
-  { id: 'post',    label: 'Post',        icon: <Plus size={15} aria-hidden /> },
-  { id: 'stats',   label: 'Statistiche', icon: <BarChart2 size={15} aria-hidden /> },
-  { id: 'piano',   label: 'Piano',       icon: <Crown size={15} aria-hidden /> },
+  { id: 'profilo',  label: 'Profilo',     icon: <Store size={15} aria-hidden /> },
+  { id: 'post',     label: 'Post',        icon: <Plus size={15} aria-hidden /> },
+  { id: 'mercati',  label: 'Mercati',     icon: <MapPin size={15} aria-hidden /> },
+  { id: 'stats',    label: 'Statistiche', icon: <BarChart2 size={15} aria-hidden /> },
+  { id: 'piano',    label: 'Piano',       icon: <Crown size={15} aria-hidden /> },
 ]
 
 export default function DashboardPage() {
@@ -429,6 +431,13 @@ export default function DashboardPage() {
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {/* ── TAB MERCATI ───────────────────────────────────────── */}
+      {tab === 'mercati' && (
+        <div role="tabpanel" id="tabpanel-mercati" aria-labelledby="tab-mercati">
+          <MarketParticipationManager shopId={shop.id} />
         </div>
       )}
 

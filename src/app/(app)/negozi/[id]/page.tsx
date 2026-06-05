@@ -3,7 +3,7 @@ export const revalidate = 3600 // rigenera ogni ora — post e review cambiano
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Globe, Instagram, Phone, Mail, Clock, BadgeCheck, Crown, ArrowLeft, Grid3X3, Star } from 'lucide-react'
+import { MapPin, Globe, Instagram, Phone, Mail, Clock, BadgeCheck, Crown, ArrowLeft, Grid3X3, Star, Calendar } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import StarRating from '@/components/StarRating'
 import ReviewCard from '@/components/ReviewCard'
@@ -56,7 +56,7 @@ const PLACEHOLDER_AVATAR = 'https://images.unsplash.com/photo-1472851294608-062f
 export default async function NegozioPage({ params }: Props) {
   const supabase = createServerClient()
 
-  const [{ data: shop }, { data: posts }, { data: reviews }] = await Promise.all([
+  const [{ data: shop }, { data: posts }, { data: reviews }, { data: marketPart }] = await Promise.all([
     supabase.from('shops').select('*').eq('id', params.id).single(),
     supabase.from('shop_posts')
       .select('*')
@@ -68,6 +68,11 @@ export default async function NegozioPage({ params }: Props) {
       .eq('target_type', 'shop')
       .eq('target_id', params.id)
       .order('likes_count', { ascending: false })
+      .limit(20),
+    supabase.from('shop_market_participations')
+      .select('market_event_id, market_events(id, name, city, region, description, event_type)')
+      .eq('shop_id', params.id)
+      .order('created_at', { ascending: false })
       .limit(20),
   ])
 
@@ -238,6 +243,44 @@ export default async function NegozioPage({ params }: Props) {
         {/* Client component per la griglia interattiva con modal */}
         <ShopProfileClient shopId={shop.id} posts={posts ?? []} mode="grid" />
       </div>
+
+      {/* ── Mercati a cui partecipo ──────────────────────────── */}
+      {(marketPart?.length ?? 0) > 0 && (
+        <div className="border-t border-border pt-6 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={14} className="text-sienna" />
+            <h2 className="font-serif font-semibold text-espresso text-[19px]">Mercati</h2>
+            <span className="text-caption text-muted">— presente a {marketPart!.length} mercato{marketPart!.length !== 1 ? 'i' : ''}</span>
+          </div>
+          <div className="space-y-2">
+            {marketPart!.map((p: any) => {
+              const m = p.market_events
+              const schedule = m.description?.match(/Cadenza:\s*(.+?)(?:\n|$)/i)?.[1]?.trim()
+              return (
+                <Link
+                  key={p.market_event_id}
+                  href={`/mercatini/eventi/${m.id}`}
+                  className="flex items-center gap-3 px-4 py-3 bg-white border border-border rounded-xl hover:border-sienna/30 hover:shadow-sm transition-all group"
+                >
+                  <MapPin size={13} className="text-sienna flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-espresso group-hover:text-sienna transition-colors truncate">
+                      {m.name}
+                    </p>
+                    <p className="text-[11px] text-muted mt-0.5">
+                      {m.city}, {m.region}
+                      {schedule && <> · <span>{schedule}</span></>}
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-semibold text-sienna opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    Vedi →
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Recensioni ───────────────────────────────────────── */}
       <div className="border-t border-border pt-6 mb-8">

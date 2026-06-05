@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   MapPin, Clock, Ticket, RefreshCw, Lightbulb, BadgeCheck,
-  ArrowLeft, Globe, Instagram, Calendar, ExternalLink, Tag,
+  ArrowLeft, Globe, Instagram, Calendar, ExternalLink, Tag, Store,
 } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import AddToCalendar from '@/components/AddToCalendar'
@@ -44,9 +44,13 @@ function cleanDescription(desc: string | null): { main: string | null; schedule:
 export default async function EventoDetailPage({ params }: Props) {
   const supabase = createServerClient()
 
-  const [{ data: ev }, { data: related }] = await Promise.all([
+  const [{ data: ev }, { data: related }, { data: shopPart }] = await Promise.all([
     supabase.from('market_events').select(EVENT_COLS).eq('id', params.id).single(),
     supabase.from('market_events').select(EVENT_COLS).neq('id', params.id).eq('is_recurring', true).limit(3),
+    supabase.from('shop_market_participations')
+      .select('shops(id, name, city, region, image_url, categories, avg_rating, is_verified, instagram)')
+      .eq('market_event_id', params.id)
+      .limit(12),
   ])
 
   if (!ev) notFound()
@@ -243,6 +247,47 @@ export default async function EventoDetailPage({ params }: Props) {
             </a>
           )}
         </div>
+
+        {/* Negozi presenti a questo mercato */}
+        {shopPart && shopPart.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-serif font-bold text-espresso text-[16px] flex items-center gap-2">
+                <Store size={15} className="text-sienna" />
+                Negozi presenti a questo mercato
+              </h2>
+              <Link href="/negozi" className="text-[12px] font-semibold text-sienna hover:underline">
+                Tutti i negozi →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(shopPart as any[]).map((p: any) => {
+                const s = p.shops
+                if (!s) return null
+                return (
+                  <Link
+                    key={s.id}
+                    href={`/negozi/${s.id}`}
+                    className="flex items-center gap-3 px-4 py-3 bg-white border border-border rounded-xl hover:border-sienna/30 hover:shadow-sm transition-all group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-sienna/10 flex items-center justify-center flex-shrink-0 text-sienna font-serif font-bold text-[14px]">
+                      {s.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-espresso group-hover:text-sienna transition-colors truncate flex items-center gap-1.5">
+                        {s.name}
+                        {s.is_verified && <BadgeCheck size={12} className="text-sienna flex-shrink-0" />}
+                      </p>
+                      <p className="text-[11px] text-muted mt-0.5 flex items-center gap-1">
+                        <MapPin size={9} /> {s.city}, {s.region}
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Altri mercati ricorrenti */}
         {related && related.length > 0 && (
