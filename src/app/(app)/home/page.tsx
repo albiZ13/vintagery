@@ -115,7 +115,12 @@ export default async function HomePage() {
     : rawEvents
 
   const featuredEvent = displayEvents[0] ?? null
-  const featuredWeather = featuredEvent
+
+  // Meteo solo entro 7 giorni (forecast Open-Meteo accurato fino a ~7 giorni)
+  const daysUntilFeatured = featuredEvent
+    ? Math.floor((new Date(featuredEvent.start_date + 'T12:00:00').getTime() - Date.now()) / 86400000)
+    : Infinity
+  const featuredWeather = (featuredEvent && daysUntilFeatured >= 0 && daysUntilFeatured <= 7)
     ? await fetchWeatherForDates(featuredEvent.city, [
         featuredEvent.start_date,
         ...(featuredEvent.end_date && featuredEvent.end_date !== featuredEvent.start_date
