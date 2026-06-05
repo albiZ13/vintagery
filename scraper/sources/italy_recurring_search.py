@@ -153,27 +153,51 @@ _DIRECTORY_SEARCHES: list[str] = [
     'site:emiliaromagnaturismo.it mercatino antiquariato {region}',
 ]
 
-# Siti regionali specifici per provincia (PDF: portali locali verificati)
+# Siti regionali specifici verificati — fonti confermate da ricerca Perplexity
 _REGIONAL_SITES: dict[str, list[str]] = {
     'Emilia-Romagna': [
-        'site:bolognawelcome.it mercatino antiquariato',
-        'site:reggioemeliawelcome.it mercatino antiquariato',
-        'site:emiliaromagnaturismo.it mercatino',
+        'site:bolognawelcome.com mercatino antiquariato vintage',
+        'site:reggioemiliawelcome.it mercatini mostre mercato',
+        'site:travelemiliaromagna.it mercatini antiquariato',
     ],
     'Toscana': [
-        'site:visittuscany.com mercatino antiquariato vintage',
+        'site:visittuscany.com passione vintage fiere antiquariato',
         'fiera antiquariato Toscana mensile ricorrente',
     ],
     'Veneto': [
-        'site:nonsoloferrivecchi.it mercatino Veneto mensile',
-        'site:salutidavicenza.it mercatino antiquariato',
+        'site:nonsoloferrivecchi.it mercatini del veneto mensile',
+        'site:salutidavicenza.it mercatini antiquariato',
+        'site:trevisoeventi.com mercatini antiquariato',
     ],
     'Umbria': [
-        'site:umbriatourism.it mercatino antiquariato mensile',
+        'site:umbriatourism.it mostre mercati antiquariato',
     ],
     'Campania': [
         'mercato Resina Ercolano vintage ogni domenica sabato',
-        'mercatini delle pulci Napoli mensile ricorrente',
+        'mercatini vintage Napoli mensile ricorrente',
+        'site:visitnaples.eu mercatini vintage napoli',
+    ],
+    'Lombardia': [
+        'site:milanosegreta.co mercati vintage milano',
+        '"east market" milano mensile domenica',
+        'site:cosedicasa.com mercatini lombardia antiquariato',
+    ],
+    'Lazio': [
+        'site:turismoroma.it mercati vintage antiquariato',
+        'site:vintagemarketroma.it',
+        '"porta portese" roma ogni domenica',
+    ],
+    'Puglia': [
+        'site:vintagemarketbari.it',
+        'mercato antiquariato Bari mensile ricorrente',
+    ],
+    'Piemonte': [
+        'site:amycasettadicharme.com mercatini vintage nord italia',
+        '"gran balon" torino mensile',
+    ],
+    'Marche': [
+        'site:summerjamboree.com mercato vintage senigallia',
+        'mercatini antiquariato Marche mensile ricorrente',
     ],
 }
 

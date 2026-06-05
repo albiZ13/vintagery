@@ -39,24 +39,32 @@ MONTH_NAMES_IT = [
 ]
 
 CITIES = [
-    ('Milano',   'Lombardia'),
-    ('Roma',     'Lazio'),
-    ('Torino',   'Piemonte'),
-    ('Napoli',   'Campania'),
-    ('Firenze',  'Toscana'),
-    ('Bologna',  'Emilia-Romagna'),
-    ('Venezia',  'Veneto'),
-    ('Verona',   'Veneto'),
-    ('Padova',   'Veneto'),
-    ('Bari',     'Puglia'),
-    ('Genova',   'Liguria'),
-    ('Palermo',  'Sicilia'),
-    ('Catania',  'Sicilia'),
-    ('Bergamo',  'Lombardia'),
-    ('Brescia',  'Lombardia'),
-    ('Modena',   'Emilia-Romagna'),
-    ('Parma',    'Emilia-Romagna'),
-    ('Pescara',  'Abruzzo'),
+    # Polo principale — Milano (private sale capitale)
+    ('Milano',       'Lombardia'),
+    ('Roma',         'Lazio'),
+    ('Torino',       'Piemonte'),
+    ('Napoli',       'Campania'),
+    ('Firenze',      'Toscana'),
+    ('Bologna',      'Emilia-Romagna'),
+    # Città confermate da PDF per tour nazionali
+    ('Padova',       'Veneto'),
+    ('Verona',       'Veneto'),
+    ('Venezia',      'Veneto'),
+    ('Brescia',      'Lombardia'),
+    ('Bergamo',      'Lombardia'),
+    ('Monza',        'Lombardia'),
+    ('Treviso',      'Veneto'),
+    ('Caserta',      'Campania'),
+    ('Bari',         'Puglia'),
+    ('Genova',       'Liguria'),
+    ('Bolzano',      'Trentino-Alto Adige'),
+    ('Moncalieri',   'Piemonte'),
+    ('Forlì',        'Emilia-Romagna'),
+    ('Senigallia',   'Marche'),
+    ('Pisa',         'Toscana'),
+    ('Cuneo',        'Piemonte'),
+    ('Palermo',      'Sicilia'),
+    ('Parma',        'Emilia-Romagna'),
 ]
 
 # Siti specializzati in svendite private da scansionare direttamente
@@ -74,11 +82,23 @@ QUERY_TEMPLATES = [
     'site:secretsalesgirl.it {city} {month} {year}',
     'site:missamplesale.com {city} {month}',
     'site:milanosamplesale.com {city} {month} {year}',
-    # Qlhype Tour (PDF: format itinerante Milano Roma Brescia Firenze Napoli Bologna Treviso Caserta)
+    # Qlhype Tour (confermato: Milano Roma Brescia Firenze Napoli Bologna Treviso Caserta)
     'site:qlhype.it private sale {city} {month} {year}',
     '"qlhype" "private sale" {city} {month} {year}',
-    # White Sale / Private Fashion Tour (PDF: Milano e tappe nazionali)
+    # White Sale / Private Fashion Tour
     '"white sale" OR "private fashion tour" {city} {month} {year}',
+    # Fair Priced Vintage Italy (confermato: Bologna DUMBO, Padova, Firenze, Torino Green Pea, Roma, Milano)
+    '"fair priced vintage" {city} {month} {year}',
+    'site:fairpricedvintage.com {city}',
+    # Vintage Market (Roma, Bari) — grandi mercati ricorrenti abbigliamento vintage
+    '"vintage market" {city} {month} {year}',
+    'site:vintagemarketroma.it',
+    'site:vintagemarketbari.it {month} {year}',
+    # East Market Milano — 300 espositori, terza domenica
+    '"east market" {city} {month} {year}',
+    # Vintage Kilo Sale Italy (separato da Vinokilo, confermato a Verona e altre città)
+    '"vintage kilo sale italy" {city} {year}',
+    '"kilo sale" vintage {city} {month} {year}',
     # Tipi di evento
     '"vendita privata" OR "private sale" abbigliamento {city} {month} {year}',
     '"sample sale" moda brand {city} {year}',
@@ -384,12 +404,19 @@ def _scrape_brand_sale_sites(target_year: int, target_month: int) -> list[dict]:
     fetcher = Fetcher()
 
     site_urls = [
-        f'https://secretsalesgirl.it/calendario/',
-        f'https://www.missamplesale.com/selected-for-you.html',
-        f'https://milanosamplesale.com/en/collections/private-salt',
-        f'https://samplelover.it/en/collections/souvenir-shop',
-        f'https://qlhype.it/eventi/',           # PDF: format itinerante nazionale
-        f'https://qlhype.it/private-sale/',
+        # Aggregatori private sale confermati
+        'https://secretsalesgirl.it/calendario/',
+        'https://www.missamplesale.com/selected-for-you.html',
+        'https://milanosamplesale.com/en/collections/private-salt',
+        'https://samplelover.it/en/collections/souvenir-shop',
+        'https://qlhype.it/eventi/',
+        'https://qlhype.it/private-sale/',
+        # Grandi vintage market con sito ufficiale (da ricerca Perplexity)
+        'https://vintagemarketroma.it',
+        'https://www.vintagemarketbari.it',
+        'https://www.fieravintage.it/fieravintage/',
+        # Fair Priced Vintage Italy — tour nazionale confermato
+        'https://www.fairpricedvintage.com',
     ]
 
     all_cities_re = re.compile(

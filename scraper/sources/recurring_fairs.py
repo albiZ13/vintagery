@@ -1460,6 +1460,195 @@ KNOWN_FAIRS = [
         'categories': ['Antiquariato'],
         'tags': ['messina', 'sicilia', 'mensile'],
     },
+
+    # ─── GRANDI MERCATI VINTAGE RICORRENTI (da ricerca Perplexity) ───────────
+
+    # LOMBARDIA — East Market Milano (uno dei più grandi d'Italia)
+    {
+        'name': 'East Market Milano',
+        'description': (
+            'Il più grande mercato vintage di Milano, ospitato in un ex hangar industriale '
+            'in via Mecenate 84. Ogni terza domenica del mese con circa 300 espositori '
+            'da tutta Italia: abbigliamento vintage, streetwear, sneakers, vinili, '
+            'modernariato e accessori. Punto di riferimento nazionale per il vintage.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Milano',
+        'region': 'Lombardia',
+        'address': 'Via Mecenate 84, Milano',
+        'schedule': 'third_weekend',
+        'start_time': '10:00',
+        'end_time': '19:00',
+        'website': 'https://eastmarket.it',
+        'organizer': 'East Market',
+        'price_info': 'A pagamento',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': True,
+        'categories': ['Vintage', 'Abbigliamento', 'Vinili', 'Modernariato'],
+        'tags': ['milano', 'lombardia', 'mensile', 'east market', 'vintage', 'abbigliamento'],
+    },
+    {
+        'name': 'Remira Market – Milano',
+        'description': (
+            'Mercatino ricorrente a Milano dedicato a vintage, second-hand e artigianato, '
+            'ospitato in spazi alternativi come il Tempio del Futuro Perduto. '
+            'Selezione curata di capi vintage, oggetti e creazioni artigianali.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Milano',
+        'region': 'Lombardia',
+        'address': 'Tempio del Futuro Perduto, Milano',
+        'schedule': 'second_sunday',
+        'start_time': '10:00',
+        'end_time': '19:00',
+        'website': None,
+        'organizer': 'Remira Market',
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Vintage', 'Abbigliamento', 'Artigianato'],
+        'tags': ['milano', 'lombardia', 'mensile', 'remira', 'vintage'],
+    },
+
+    # LAZIO — Vintage Market Roma (VMGT)
+    {
+        'name': 'Vintage Market Roma',
+        'description': (
+            'L\'evento vintage più rinomato della capitale, ospitato in grandi spazi industriali '
+            'come il San Paolo District e gli ex depositi ATAC. '
+            'Oltre 200 espositori tra abbigliamento vintage, artigianato, design indipendente '
+            'e moda second-hand. Edizioni mensili e speciali durante l\'anno.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Roma',
+        'region': 'Lazio',
+        'address': 'San Paolo District / Ex depositi ATAC, Roma',
+        'schedule': 'last_sunday',
+        'start_time': '10:00',
+        'end_time': '20:00',
+        'website': 'https://vintagemarketroma.it',
+        'organizer': 'Vintage Market Roma',
+        'price_info': 'A pagamento',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': True,
+        'categories': ['Vintage', 'Abbigliamento', 'Design', 'Artigianato'],
+        'tags': ['roma', 'lazio', 'mensile', 'vintage market', 'vmgt', 'abbigliamento'],
+    },
+
+    # PUGLIA — Vintage Market Bari
+    {
+        'name': 'Vintage Market Bari',
+        'description': (
+            'Il più grande vintage market del Sud Italia, con espositori da tutta la penisola. '
+            'Forte componente di abbigliamento di seconda mano, accessori, design e creazioni green. '
+            'Evento con edizioni numerate, segnale di una realtà consolidata e in crescita.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Bari',
+        'region': 'Puglia',
+        'address': 'Bari (location variabile, vedi sito)',
+        'schedule': 'last_sunday',
+        'start_time': '10:00',
+        'end_time': '20:00',
+        'website': 'https://www.vintagemarketbari.it',
+        'organizer': 'Vintage Market Bari',
+        'price_info': 'A pagamento',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Vintage', 'Abbigliamento', 'Accessori'],
+        'tags': ['bari', 'puglia', 'mensile', 'vintage market', 'abbigliamento', 'sud'],
+    },
+
+    # EMILIA-ROMAGNA — Fiera Vintage Forlì ("VINTAGE! La moda che vive due volte")
+    {
+        'name': 'VINTAGE! La moda che vive due volte – Forlì',
+        'description': (
+            'Storica manifestazione fieristica dedicata alla moda vintage, '
+            'giunta alla 41ª edizione nel 2026. Un intero fine settimana dedicato '
+            'ad abbigliamento d\'epoca, accessori, bijoux, modernariato e collezionismo, '
+            'con espositori selezionati da tutta Italia.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Forlì',
+        'region': 'Emilia-Romagna',
+        'address': 'Fiera di Forlì',
+        'schedule': 'fixed',
+        'fixed_dates': {
+            10: ('2026-10-17', '2026-10-18'),  # data indicativa autunnale
+        },
+        'start_time': '09:00',
+        'end_time': '19:00',
+        'website': 'https://www.fieravintage.it/fieravintage/',
+        'organizer': 'Fiera Vintage Forlì',
+        'price_info': 'A pagamento',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Vintage', 'Abbigliamento', 'Modernariato'],
+        'tags': ['forlì', 'emilia-romagna', 'fiera', 'annuale', 'vintage', 'abbigliamento'],
+    },
+
+    # MARCHE — Summer Jamboree Senigallia
+    {
+        'name': 'Summer Jamboree – Senigallia',
+        'description': (
+            'Festival internazionale anni \'40–\'50 di fama mondiale a Senigallia. '
+            'Include un\'importante area market dedicata ad abiti, accessori e oggetti '
+            'vintage in stile rockabilly e pin-up, oltre a concerti e attività tematiche. '
+            'Uno degli appuntamenti più attesi del vintage estivo italiano.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Senigallia',
+        'region': 'Marche',
+        'address': 'Senigallia (AN)',
+        'schedule': 'fixed',
+        'fixed_dates': {
+            8: ('2026-08-01', '2026-08-09'),  # di solito prima settimana di agosto
+        },
+        'start_time': '10:00',
+        'end_time': '23:00',
+        'website': 'https://www.summerjamboree.com',
+        'organizer': 'Summer Jamboree',
+        'price_info': 'A pagamento',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': True,
+        'categories': ['Vintage', 'Abbigliamento', 'Collezionismo'],
+        'tags': ['senigallia', 'marche', 'festival', 'annuale', 'vintage', 'rockabilly'],
+    },
+
+    # VENETO — Valeggio veste il Vintage
+    {
+        'name': 'Valeggio veste il Vintage',
+        'description': (
+            'Evento alla 29ª edizione che trasforma il centro di Valeggio sul Mincio '
+            'in un grande mercato di abbigliamento e accessori vintage selezionati. '
+            'Uno dei mercati vintage più affascinanti del Nord Italia, '
+            'ambientato in un borgo medievale.'
+        ),
+        'event_type': 'mercatino',
+        'city': 'Valeggio sul Mincio',
+        'region': 'Veneto',
+        'address': 'Centro storico, Valeggio sul Mincio (VR)',
+        'schedule': 'fixed',
+        'fixed_dates': {
+            7: ('2026-07-19', '2026-07-19'),  # solitamente luglio
+        },
+        'start_time': '09:00',
+        'end_time': '19:00',
+        'website': None,
+        'organizer': None,
+        'price_info': 'Ingresso gratuito',
+        'is_recurring': True,
+        'is_verified': True,
+        'is_featured': False,
+        'categories': ['Vintage', 'Abbigliamento', 'Accessori'],
+        'tags': ['valeggio sul mincio', 'verona', 'veneto', 'annuale', 'vintage'],
+    },
 ]
 
 
