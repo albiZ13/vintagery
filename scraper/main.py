@@ -53,7 +53,7 @@ SOURCE_CONFIDENCE = {
 
 
 def _dedup_key(name: str, start_date: str, city: str) -> str:
-    """Normalised dedup key: lowercase, no accents, no punctuation, collapsed spaces."""
+    """Dedup key per data+nome+città (usato per eventi one-time e ricorrenti mensili)."""
     def norm(s: str) -> str:
         s = unicodedata.normalize('NFD', s.lower())
         s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
@@ -69,21 +69,8 @@ def get_supabase() -> Client:
 def upsert_event(supabase: Client, ev: dict, source: str, month: int, year: int) -> bool:
     confidence = SOURCE_CONFIDENCE.get(source, 0.3)
 
-    # Annotate description with source + confidence
     desc = ev.get('description') or ''
-    source_label = {
-        'vinokilo':   '✅ Fonte ufficiale Vinokilo',
-        'eventbrite': '🟡 Fonte: Eventbrite (organizzatore registrato)',
-        'subito':     '🟠 Fonte: Subito.it (annuncio privato)',
-        'facebook':   '🔴 Fonte: Gruppo Facebook pubblico (non verificato)',
-    }.get(source, f'Fonte: {source}')
-
-    if desc:
-        desc = f'{desc}\n\n{source_label}'
-    else:
-        desc = source_label
-
-    key = _dedup_key(ev['name'], ev['start_date'], ev['city'])
+    key  = _dedup_key(ev['name'], ev['start_date'], ev['city'])
 
     payload = {
         'name':         ev['name'],
@@ -137,16 +124,18 @@ def delete_recurring_search_data(supabase: Client) -> int:
 def run_recurring_search(month: int, year: int) -> dict:
     """
     Ricerca sistematica mercati ricorrenti in tutta Italia.
-    Aggiunge nuovi mercati senza toccare quelli esistenti.
-    Il dedup_key (nome+città) impedisce duplicati.
+    - Dedup morbido: stesso nome+città → skip (indipendente dalla data)
+    - Enricher: DDG search + Claude Haiku per ogni mercato nuovo
     """
     from .sources import italy_recurring_search
+    from .enricher import enrich_market, market_exists_by_location
 
     supabase = get_supabase()
     SOURCE_CONFIDENCE['italy_recurring'] = 0.60
 
     inserted = 0
     filtered = 0
+    enriched = 0
     errors: list[str] = []
 
     try:
@@ -155,6 +144,13 @@ def run_recurring_search(month: int, year: int) -> dict:
                 filtered += 1
                 continue
             try:
+                # Dedup morbido: stessa città+nome → skip
+                if market_exists_by_location(supabase, ev.get('name', ''), ev.get('city', '')):
+                    filtered += 1
+                    continue
+                # Arricchimento completo con DDG + Haiku
+                ev = enrich_market(ev)
+                enriched += 1
                 if upsert_event(supabase, ev, 'italy_recurring', month, year):
                     inserted += 1
             except Exception as e:
@@ -165,12 +161,13 @@ def run_recurring_search(month: int, year: int) -> dict:
     result = {
         'italy_recurring': {
             'inserted':   inserted,
+            'enriched':   enriched,
             'filtered':   filtered,
             'errors':     errors,
             'confidence': 0.60,
         }
     }
-    print(f'[italy_recurring] inserted={inserted} filtered_out={filtered} errors={len(errors)}')
+    print(f'[italy_recurring] inserted={inserted} enriched={enriched} filtered_out={filtered} errors={len(errors)}')
     return result
 
 
@@ -235,9 +232,16 @@ def run_scrape(month: int, year: int, source_filter: list[str] | None = None, re
                 validated = filter_and_score(raw_batch)
                 filtered  = pre_count - len(validated)
 
-            # Upsert eventi validati
+            # Upsert eventi validati con dedup morbido (nome+città) + enricher
+            from .enricher import enrich_market, market_exists_by_location
             for ev in validated:
                 try:
+                    # Dedup morbido: stesso nome+città già in DB → salta
+                    if market_exists_by_location(supabase, ev.get('name', ''), ev.get('city', '')):
+                        filtered += 1
+                        continue
+                    # Arricchimento AI per mercati non già in DB
+                    ev = enrich_market(ev)
                     if upsert_event(supabase, ev, source_name, month, year):
                         inserted += 1
                 except Exception as e:
