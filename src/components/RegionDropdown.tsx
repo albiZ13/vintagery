@@ -11,10 +11,9 @@ interface Props {
   value: string   // 'all' o nome regione
   month: number
   year: number
-  type: string
 }
 
-export default function RegionDropdown({ value, month, year, type }: Props) {
+export default function RegionDropdown({ value, month, year }: Props) {
   const router      = useRouter()
   const triggerRef  = useRef<HTMLButtonElement>(null)
   const searchRef   = useRef<HTMLInputElement>(null)
@@ -44,9 +43,7 @@ export default function RegionDropdown({ value, month, year, type }: Props) {
 
   function navigate(region: string) {
     setOpen(false)
-    const params = new URLSearchParams({
-      month: String(month), year: String(year), type, region,
-    })
+    const params = new URLSearchParams({ month: String(month), year: String(year), region })
     router.push(`/mercatini?${params}`)
   }
 

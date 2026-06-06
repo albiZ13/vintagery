@@ -2,7 +2,7 @@ export const revalidate = 300
 
 import React, { Suspense } from 'react'
 import Link from 'next/link'
-import { MapPin, Calendar, Sparkles } from 'lucide-react'
+import { MapPin, Sparkles } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import EventCard, { type MarketEvent } from '@/components/EventCard'
 import MarketCard from '@/components/MarketCard'
@@ -35,16 +35,6 @@ interface Props {
   }
 }
 
-const EVENT_TYPES = [
-  { value: 'all',           label: 'Tutto',            emoji: '✨' },
-  { value: 'mercatino',     label: 'Mercatini',        emoji: '🏪' },
-  { value: 'antiquariato',  label: 'Antiquariato',     emoji: '🏛️' },
-  { value: 'vinokilo',      label: 'Kilo Vintage',     emoji: '⚖️' },
-  { value: 'svuotacantina', label: 'Svuotacantina',    emoji: '📦' },
-  { value: 'brand_sale',    label: 'Brand & Lusso',    emoji: '👗' },
-  { value: 'vinili',        label: 'Vinili & Fumetti', emoji: '🎵' },
-  { value: 'gratuiti',      label: 'Gratuiti',         emoji: '🆓' },
-]
 
 function getMonthYear(sp: Props['searchParams']) {
   const now   = new Date()
@@ -239,7 +229,6 @@ async function TuttiIContenuti({ searchParams }: Props) {
 
 export default function MercatiniPage({ searchParams }: Props) {
   const { month, year } = getMonthYear(searchParams)
-  const typeFilter   = searchParams.type   ?? 'all'
   const regionFilter = searchParams.region ?? 'all'
 
   const prevMonth = month === 1  ? 12 : month - 1
@@ -269,14 +258,14 @@ export default function MercatiniPage({ searchParams }: Props) {
             {/* Month navigation */}
             <div className="flex items-center gap-1 bg-white/8 border border-white/12 rounded-xl px-1 py-1">
               <Link
-                href={`/mercatini?month=${prevMonth}&year=${prevYear}&type=${typeFilter}&region=${regionFilter}`}
+                href={`/mercatini?month=${prevMonth}&year=${prevYear}&region=${regionFilter}`}
                 className="w-8 h-8 flex items-center justify-center text-parchment/50 hover:text-parchment hover:bg-white/10 rounded-lg transition-all font-bold text-lg leading-none"
               >‹</Link>
               <span className="font-serif font-bold text-parchment text-[15px] px-3 min-w-[130px] text-center capitalize">
                 {MONTHS_IT[month - 1]} {year}
               </span>
               <Link
-                href={`/mercatini?month=${nextMonth}&year=${nextYear}&type=${typeFilter}&region=${regionFilter}`}
+                href={`/mercatini?month=${nextMonth}&year=${nextYear}&region=${regionFilter}`}
                 className="w-8 h-8 flex items-center justify-center text-parchment/50 hover:text-parchment hover:bg-white/10 rounded-lg transition-all font-bold text-lg leading-none"
               >›</Link>
             </div>
@@ -287,31 +276,10 @@ export default function MercatiniPage({ searchParams }: Props) {
       <div className="max-w-5xl mx-auto px-4 py-6">
 
         {/* Filters row */}
-        <div className="flex flex-wrap items-center gap-2 mb-8 pb-6 border-b border-border">
-
-          {/* Type filter */}
-          <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
-            {EVENT_TYPES.map(t => (
-              <Link
-                key={t.value}
-                href={`/mercatini?month=${month}&year=${year}&type=${t.value}&region=${regionFilter}`}
-                className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap ${
-                  typeFilter === t.value
-                    ? 'bg-espresso text-parchment border-espresso'
-                    : 'bg-white text-coffee border-border hover:border-espresso/30'
-                }`}
-              >
-                {t.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Region + actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <RegionDropdown value={regionFilter} month={month} year={year} type={typeFilter} />
-            <SubscribeWidget initialRegion={regionFilter !== 'all' ? regionFilter : undefined} />
-            <EventsClient month={month} year={year} />
-          </div>
+        <div className="flex items-center gap-2 mb-8 pb-6 border-b border-border">
+          <RegionDropdown value={regionFilter} month={month} year={year} />
+          <SubscribeWidget initialRegion={regionFilter !== 'all' ? regionFilter : undefined} />
+          <EventsClient month={month} year={year} />
         </div>
 
         {/* Content */}
