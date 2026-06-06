@@ -41,6 +41,10 @@ export interface Market {
   is_verified: boolean
   is_featured: boolean
   created_at: string
+  tips?: string | null
+  start_time?: string | null
+  end_time?: string | null
+  price_info?: string | null
 }
 
 export interface Shop {

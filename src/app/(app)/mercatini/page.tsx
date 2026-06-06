@@ -87,7 +87,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
   const startOfMonth = `${year}-${String(month).padStart(2,'0')}-01`
   const endOfMonth   = new Date(year, month, 0).toISOString().split('T')[0]
 
-  const MARKET_COLS = 'id,name,description,city,region,address,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count'
+  const MARKET_COLS = 'id,name,description,city,region,address,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count,tips,start_time,end_time,price_info'
   const EVENT_COLS  = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips'
 
   let marketsQuery = supabase
