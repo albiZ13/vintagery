@@ -210,7 +210,8 @@ export default function HomeRegionHeader({
                   </button>
                 )}
                 {cta && (
-                  <Link href={cta.href}
+                  <Link
+                    href={region ? `/mercatini?region=${encodeURIComponent(region)}` : cta.href}
                     className="inline-flex items-center gap-1.5 bg-white/14 hover:bg-white/22 border border-white/20 text-parchment font-semibold rounded-xl px-4 py-2.5 text-[13px] transition-all">
                     <Calendar size={13} /> {cta.label}
                   </Link>

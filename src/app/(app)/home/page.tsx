@@ -180,7 +180,7 @@ export default async function HomePage() {
             )}
           </div>
           <Link
-            href="/mercatini"
+            href={region ? `/mercatini?region=${encodeURIComponent(region)}` : '/mercatini'}
             className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-sienna hover:text-espresso transition-colors"
           >
             Tutto il calendario <ArrowRight size={11} />

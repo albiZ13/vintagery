@@ -8,9 +8,9 @@ import EventCard, { type MarketEvent } from '@/components/EventCard'
 import MarketCard from '@/components/MarketCard'
 import RecurringMarketCard from '@/components/RecurringMarketCard'
 import EventsClient from '@/components/EventsClient'
-import VicinoAMe from '@/components/VicinoAMe'
 import SubscribeWidget from '@/components/SubscribeWidget'
-import { ITALIAN_REGIONS, MONTHS_IT } from '@/types'
+import RegionDropdown from '@/components/RegionDropdown'
+import { MONTHS_IT } from '@/types'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
 
@@ -287,15 +287,15 @@ export default function MercatiniPage({ searchParams }: Props) {
       <div className="max-w-5xl mx-auto px-4 py-6">
 
         {/* Filters row */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-8 pb-6 border-b border-border">
 
           {/* Type filter */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
             {EVENT_TYPES.map(t => (
               <Link
                 key={t.value}
                 href={`/mercatini?month=${month}&year=${year}&type=${t.value}&region=${regionFilter}`}
-                className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap ${
                   typeFilter === t.value
                     ? 'bg-espresso text-parchment border-espresso'
                     : 'bg-white text-coffee border-border hover:border-espresso/30'
@@ -306,35 +306,12 @@ export default function MercatiniPage({ searchParams }: Props) {
             ))}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 ml-auto">
+          {/* Region + actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <RegionDropdown value={regionFilter} month={month} year={year} type={typeFilter} />
             <SubscribeWidget initialRegion={regionFilter !== 'all' ? regionFilter : undefined} />
-            <VicinoAMe currentRegion={regionFilter} month={month} year={year} type={typeFilter} />
             <EventsClient month={month} year={year} />
           </div>
-        </div>
-
-        {/* Region filter */}
-        <div className="flex flex-wrap gap-1.5 mb-8 pb-6 border-b border-border">
-          <Link
-            href={`/mercatini?month=${month}&year=${year}&type=${typeFilter}&region=all`}
-            className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all ${
-              regionFilter === 'all'
-                ? 'bg-sienna text-parchment border-sienna'
-                : 'bg-white text-muted border-border hover:border-sienna hover:text-sienna'
-            }`}
-          >Tutte</Link>
-          {ITALIAN_REGIONS.map(r => (
-            <Link
-              key={r}
-              href={`/mercatini?month=${month}&year=${year}&type=${typeFilter}&region=${encodeURIComponent(r)}`}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all ${
-                regionFilter === r
-                  ? 'bg-sienna text-parchment border-sienna'
-                  : 'bg-white text-muted border-border hover:border-sienna hover:text-sienna'
-              }`}
-            >{r}</Link>
-          ))}
         </div>
 
         {/* Content */}
