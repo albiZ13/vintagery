@@ -7,7 +7,7 @@ import EventCard from '@/components/EventCard'
 import FeaturedMarketCard from '@/components/FeaturedMarketCard'
 import ShopCard from '@/components/ShopCard'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
-import { fetchWeatherForDates } from '@/lib/weather'
+import { fetchWeatherForDates, type WeatherDay } from '@/lib/weather'
 import type { MarketEvent, Shop } from '@/types'
 
 const EVENT_COLS = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips,avg_rating,review_count'
@@ -37,96 +37,125 @@ function getWeekend(): { sat: string; sun: string; label: string } {
   }
 }
 
+function featuredScore(e: MarketEvent): number {
+  if (!e.review_count || !e.avg_rating) return 0
+  return e.avg_rating * Math.log(e.review_count + 1)
+}
+
 export default async function HomePage() {
   const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
+  // ── Auth ──────────────────────────────────────────────────────────
+  let user = null
   let profile: { first_name?: string | null; username?: string | null; region?: string | null } | null = null
-  if (user) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('first_name, username, region')
-      .eq('id', user.id)
-      .single()
-    profile = data
-  }
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+    if (user) {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('first_name, username, region')
+        .eq('id', user.id)
+        .single()
+      profile = p
+    }
+  } catch { /* auth error → render page without personalization */ }
 
-  const region   = profile?.region ?? null
-  const weekend  = getWeekend()
+  const region  = profile?.region ?? null
+  const weekend = getWeekend()
 
-  // Weekend events — filtered by region if set
-  let weekendQ = supabase
-    .from('market_events')
-    .select(EVENT_COLS)
-    .in('start_date', [weekend.sat, weekend.sun])
-    .order('start_date', { ascending: true })
-  if (region) weekendQ = weekendQ.eq('region', region)
-  const { data: weekendEvents } = await weekendQ.limit(9)
-
-  // Fallback: prossimi 14 giorni se il weekend è vuoto
-  let upcomingEvents: MarketEvent[] = []
-  if (!weekendEvents?.length) {
-    const today14 = new Date()
-    today14.setDate(today14.getDate() + 14)
-    let upQ = supabase
+  // ── Weekend events ─────────────────────────────────────────────────
+  let events: MarketEvent[] = []
+  try {
+    let q = supabase
       .from('market_events')
       .select(EVENT_COLS)
-      .gte('start_date', new Date().toISOString().slice(0, 10))
-      .lte('start_date', today14.toISOString().slice(0, 10))
+      .in('start_date', [weekend.sat, weekend.sun])
       .order('start_date', { ascending: true })
-    if (region) upQ = upQ.eq('region', region)
-    const { data } = await upQ.limit(6)
-    upcomingEvents = (data ?? []) as MarketEvent[]
-  }
+    if (region) q = q.eq('region', region)
+    const { data } = await q.limit(9)
+    events = (data ?? []) as MarketEvent[]
+  } catch { /* fallback a lista vuota */ }
 
-  // Stats
-  const [{ count: totalMarkets }, { count: totalRegions }] = await Promise.all([
-    supabase.from('market_events').select('id', { count: 'exact', head: true }).eq('is_recurring', true),
-    supabase.from('market_events').select('region', { count: 'exact', head: true }).eq('is_recurring', true),
-  ])
-
-  // Top shops
-  let shopsQ = supabase.from('shops').select(SHOP_COLS).eq('is_verified', true).order('avg_rating', { ascending: false })
-  if (region) shopsQ = shopsQ.eq('region', region)
-  const { data: shops } = await shopsQ.limit(3)
-
-  const events     = (weekendEvents ?? []) as MarketEvent[]
   const hasWeekend = events.length > 0
-  const hasShops   = (shops?.length ?? 0) > 0
 
-  // Ordina per score quando ci sono recensioni verificate:
-  // score = avg_rating * ln(review_count + 1)
-  // Se nessun evento ha ancora recensioni, mantieni l'ordine originale
-  // (is_featured davanti, poi start_date crescente — già gestito dalla query).
-  function featuredScore(e: MarketEvent): number {
-    if (!e.review_count || !e.avg_rating) return 0
-    return e.avg_rating * Math.log(e.review_count + 1)
+  // ── Fallback: prossimi 14 giorni ──────────────────────────────────
+  let upcomingEvents: MarketEvent[] = []
+  if (!hasWeekend) {
+    try {
+      const now   = new Date()
+      const plus14 = new Date(now)
+      plus14.setDate(now.getDate() + 14)
+      let q = supabase
+        .from('market_events')
+        .select(EVENT_COLS)
+        .gte('start_date', now.toISOString().slice(0, 10))
+        .lte('start_date', plus14.toISOString().slice(0, 10))
+        .order('start_date', { ascending: true })
+      if (region) q = q.eq('region', region)
+      const { data } = await q.limit(6)
+      upcomingEvents = (data ?? []) as MarketEvent[]
+    } catch { /* fallback a lista vuota */ }
   }
 
-  const rawEvents  = hasWeekend ? events : upcomingEvents
-  const anyReviews = rawEvents.some(e => e.review_count > 0)
+  // ── Stats ──────────────────────────────────────────────────────────
+  let totalMarkets: number | null = null
+  try {
+    const { count } = await supabase
+      .from('market_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_recurring', true)
+    totalMarkets = count
+  } catch { /* stats opzionali */ }
+
+  // ── Negozi ─────────────────────────────────────────────────────────
+  let shops: Shop[] = []
+  try {
+    let q = supabase
+      .from('shops')
+      .select(SHOP_COLS)
+      .eq('is_verified', true)
+      .order('avg_rating', { ascending: false })
+    if (region) q = q.eq('region', region)
+    const { data } = await q.limit(3)
+    shops = (data ?? []) as Shop[]
+  } catch { /* negozi opzionali */ }
+
+  const hasShops = shops.length > 0
+
+  // ── Ordina per score (entra in gioco quando ci sono recensioni) ────
+  const rawEvents = hasWeekend ? events : upcomingEvents
+  const anyReviews = rawEvents.some(e => (e.review_count ?? 0) > 0)
   const displayEvents = anyReviews
     ? [...rawEvents].sort((a, b) => {
         const diff = featuredScore(b) - featuredScore(a)
         if (diff !== 0) return diff
-        // Parità di score: is_featured come tiebreak
         return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
       })
     : rawEvents
 
+  // ── Meteo: solo entro 7 giorni, timeout 5s totali ─────────────────
   const featuredEvent = displayEvents[0] ?? null
-
-  // Meteo solo entro 7 giorni (forecast Open-Meteo accurato fino a ~7 giorni)
-  const daysUntilFeatured = featuredEvent
-    ? Math.floor((new Date(featuredEvent.start_date + 'T12:00:00').getTime() - Date.now()) / 86400000)
-    : Infinity
-  const featuredWeather = (featuredEvent && daysUntilFeatured >= 0 && daysUntilFeatured <= 7)
-    ? await fetchWeatherForDates(featuredEvent.city, [
-        featuredEvent.start_date,
-        ...(featuredEvent.end_date && featuredEvent.end_date !== featuredEvent.start_date
-          ? [featuredEvent.end_date] : []),
-      ].filter(Boolean) as string[])
-    : []
+  let featuredWeather: WeatherDay[] = []
+  if (featuredEvent) {
+    try {
+      const eventDate = new Date(featuredEvent.start_date + 'T12:00:00')
+      const daysUntil = Math.floor((eventDate.getTime() - Date.now()) / 86400000)
+      if (daysUntil >= 0 && daysUntil <= 7) {
+        const dates = [
+          featuredEvent.start_date,
+          ...(featuredEvent.end_date && featuredEvent.end_date !== featuredEvent.start_date
+            ? [featuredEvent.end_date] : []),
+        ]
+        featuredWeather = await Promise.race([
+          fetchWeatherForDates(featuredEvent.city, dates),
+          new Promise<[]>(resolve => setTimeout(() => resolve([]), 5000)),
+        ])
+      }
+    } catch {
+      featuredWeather = []
+    }
+  }
 
   return (
     <>
@@ -136,7 +165,7 @@ export default async function HomePage() {
         initialRegion={region}
       />
 
-      {/* ── Questo weekend ───────────────────────────────────────────── */}
+      {/* ── Questo weekend ────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 pt-10 pb-4">
         <div className="flex items-end justify-between mb-6">
           <div>
@@ -160,10 +189,7 @@ export default async function HomePage() {
 
         {displayEvents.length > 0 ? (
           <div className="space-y-4">
-            {/* Card allungata per il primo evento */}
             <FeaturedMarketCard event={displayEvents[0]} weather={featuredWeather} />
-
-            {/* Griglia per gli altri */}
             {displayEvents.length > 1 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayEvents.slice(1).map(e => (
@@ -179,7 +205,9 @@ export default async function HomePage() {
               Nessun mercato in programma
             </p>
             <p className="text-muted text-[12px] mb-4">
-              {region ? `Non ci sono mercati in ${region} questo weekend.` : 'Nessun mercato trovato per questo weekend.'}
+              {region
+                ? `Non ci sono mercati in ${region} questo weekend.`
+                : 'Nessun mercato trovato per questo weekend.'}
             </p>
             <Link href="/mercatini" className="text-[12px] font-semibold text-sienna hover:underline">
               Esplora tutto il calendario →
@@ -188,13 +216,13 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* ── Stats strip ──────────────────────────────────────────────── */}
+      {/* ── Stats ──────────────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center gap-8 sm:gap-16 py-5 bg-white border border-border rounded-2xl">
           {[
-            { n: totalMarkets ?? 69,  label: 'mercati ricorrenti' },
-            { n: 20,                  label: 'regioni coperte'     },
-            { n: '100%',              label: 'ad ingresso gratuito' },
+            { n: totalMarkets ?? 58, label: 'mercati ricorrenti' },
+            { n: 20,                 label: 'regioni coperte'    },
+            { n: '100%',             label: 'ad ingresso gratuito' },
           ].map(({ n, label }) => (
             <div key={label} className="text-center">
               <p className="font-serif font-bold text-espresso text-[26px] leading-none">{n}</p>
@@ -204,7 +232,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Esplora per tipo ─────────────────────────────────────────── */}
+      {/* ── Esplora per tipo ──────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 pb-10">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sienna mb-4">
           Esplora per tipo
@@ -225,7 +253,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Negozi vintage ───────────────────────────────────────────── */}
+      {/* ── Negozi vintage ────────────────────────────────────────── */}
       {hasShops && (
         <section className="max-w-5xl mx-auto px-4 pb-12">
           <div className="flex items-end justify-between mb-5">
@@ -245,12 +273,12 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(shops ?? []).map(s => <ShopCard key={s.id} shop={s as Shop} />)}
+            {shops.map(s => <ShopCard key={s.id} shop={s as Shop} />)}
           </div>
         </section>
       )}
 
-      {/* ── Banner proponi mercatino ──────────────────────────────────── */}
+      {/* ── Banner proponi mercatino ──────────────────────────────── */}
       <section className="bg-espresso border-t border-black/20 py-14 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
         <div className="max-w-2xl mx-auto px-4 text-center relative">
