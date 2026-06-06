@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC = [
   '/',
+  '/home',
   '/auth/login',
   '/auth/register',
   '/auth/confirm',
@@ -15,6 +16,7 @@ const PUBLIC = [
   '/negozi',
   '/mappa',
   '/per-i-negozi',
+  '/proponi-mercatino',
 ]
 
 export async function middleware(req: NextRequest) {
@@ -44,8 +46,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', req.url))
   }
 
-  if (user && (path === '/' || path === '/auth/login' || path === '/auth/register')) {
-    return NextResponse.redirect(new URL('/mercatini', req.url))
+  if (user && (path === '/auth/login' || path === '/auth/register')) {
+    return NextResponse.redirect(new URL('/home', req.url))
   }
 
   return res
