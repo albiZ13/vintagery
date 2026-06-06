@@ -177,7 +177,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
                 <RegionLabel region={region} count={fixed.length + monthly.length} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {fixed.map((m: Market) => (
-                    <MarketCard key={m.id} market={m} compact />
+                    <MarketCard key={m.id} market={m} />
                   ))}
                   {monthly.map((e: MarketEvent) => (
                     <RecurringMarketCard key={e.id} event={e} />
