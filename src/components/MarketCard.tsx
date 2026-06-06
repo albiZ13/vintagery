@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, Clock, Ticket, RefreshCw, Lightbulb, ArrowRight, BadgeCheck } from 'lucide-react'
+import { MapPin, BadgeCheck, Clock, ArrowRight, Star, RefreshCw } from 'lucide-react'
 import type { Market } from '@/types'
 import SaveButton from './SaveButton'
-import { REGION_CONFIG, AREA_PATTERNS, DEFAULT_CONFIG } from '@/lib/regions-config'
+import { REGION_CONFIG, DEFAULT_CONFIG } from '@/lib/regions-config'
 
 const FREQ_LABEL: Record<string, string> = {
   settimanale: 'Ogni settimana',
@@ -14,7 +14,7 @@ const FREQ_LABEL: Record<string, string> = {
 }
 
 const MONTHS = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
-const DAYS_LONG = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
+const DAYS   = ['dom','lun','mar','mer','gio','ven','sab']
 
 interface Props {
   market: Market
@@ -22,168 +22,120 @@ interface Props {
 }
 
 export default function MarketCard({ market, compact = false }: Props) {
-  const cfg     = REGION_CONFIG[market.region] ?? DEFAULT_CONFIG
-  const pattern = AREA_PATTERNS[cfg.area] ?? AREA_PATTERNS.default
-  const [g1, g2] = cfg.gradient
-  const accent  = cfg.accent
+  const cfg    = REGION_CONFIG[market.region] ?? DEFAULT_CONFIG
+  const accent = cfg.accent
 
-  const isFree   = /gratuito|gratis|free/i.test(market.price_info ?? '')
-  const cats     = (market.categories ?? []).slice(0, 4)
-  const schedule = market.schedule_notes ?? (market.frequency ? FREQ_LABEL[market.frequency] : null)
-  const desc     = market.description?.split('\n')[0]?.slice(0, 200) ?? null
+  const cats = (market.categories ?? []).slice(0, 3)
 
-  const d = market.next_date ? new Date(market.next_date + 'T12:00:00') : null
+  const nextDate = market.next_date
+    ? new Date(market.next_date + 'T12:00:00')
+    : null
 
   return (
     <Link
       href={`/mercatini/${market.id}`}
-      className={`group block bg-white border border-border/70 rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-[0_10px_48px_rgba(15,32,64,0.14)] hover:-translate-y-1 hover:border-transparent ${
-        market.is_featured ? 'ring-2 ring-gold/40 shadow-[0_4px_20px_rgba(201,168,76,0.15)]' : ''
+      className={`group relative flex bg-white border border-border rounded-xl overflow-hidden transition-all duration-150 hover:shadow-[0_4px_20px_rgba(15,32,64,0.09)] hover:border-border-strong ${
+        market.is_featured ? 'ring-1 ring-gold/30' : ''
       }`}
     >
-      {/* ── Header gradient — regione + pattern ─── */}
-      <div
-        className="relative h-[88px] flex flex-col justify-between px-5 pt-4 pb-3.5"
-        style={{
-          background:          `linear-gradient(135deg, ${g1}, ${g2})`,
-          backgroundImage:     `${pattern}, linear-gradient(135deg, ${g1}, ${g2})`,
-          backgroundBlendMode: 'overlay, normal',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/5 to-black/25 pointer-events-none" />
+      {/* Accent bar sinistra — colore regione */}
+      <div className="w-[3px] flex-shrink-0" style={{ background: accent }} />
 
-        {/* Top row */}
-        <div className="relative flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/55">
-            {cats[0] ?? 'Mercato ricorrente'}
+      <div className="flex-1 p-4">
+
+        {/* Riga 1: regione + badges */}
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: accent }}>
+            {market.region}
           </span>
           <div className="flex items-center gap-1.5">
             {market.is_featured && (
-              <span className="text-[9px] font-bold text-white/95 bg-white/15 border border-white/20 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold text-gold bg-gold/8 border border-gold/20 px-2 py-0.5 rounded-full">
                 In evidenza
               </span>
             )}
             {market.is_verified && (
-              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-white/90 bg-white/15 border border-white/20 px-2 py-0.5 rounded-full">
-                <BadgeCheck size={8} /> Verificato
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-espresso/60 bg-espresso/5 px-2 py-0.5 rounded-full border border-espresso/10">
+                <BadgeCheck size={9} /> Verificato
               </span>
             )}
           </div>
         </div>
 
-        {/* Bottom row — schedule pill */}
-        <div className="relative">
-          <span className="inline-flex items-center gap-1.5 bg-white/18 backdrop-blur-sm border border-white/25 rounded-full px-2.5 py-1">
-            <RefreshCw size={9} className="text-white/75" />
-            <span className="text-[10px] font-semibold text-white leading-none">
-              {schedule ?? 'Ricorrente'}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Accent bar */}
-      <div className="h-[2px]" style={{ background: `linear-gradient(90deg, ${accent}cc, transparent)` }} />
-
-      {/* ── Contenuto ─────────────────────────────── */}
-      <div className="px-5 pt-4 pb-5">
-
-        {/* Prossima data */}
-        {d && (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-1.5" style={{ color: accent }}>
-            {DAYS_LONG[d.getDay()]} {d.getDate()} {MONTHS[d.getMonth()].toUpperCase()}
-          </p>
-        )}
-
         {/* Titolo */}
-        <h3 className={`font-serif font-bold text-espresso leading-[1.2] mb-3 group-hover:text-sienna transition-colors duration-150 ${
-          compact ? 'text-[15px] line-clamp-2' : 'text-[18px]'
+        <h3 className={`font-serif font-bold text-espresso leading-[1.25] mb-2 group-hover:text-sienna transition-colors duration-150 ${
+          compact ? 'text-[14px] line-clamp-1' : 'text-[16px] line-clamp-2'
         }`}>
           {market.name}
         </h3>
 
         {/* Luogo */}
-        <div className="flex items-start gap-2 mb-2">
-          <MapPin size={12} className="mt-0.5 flex-shrink-0" style={{ color: accent }} />
-          <div className="min-w-0">
-            <span className="text-[13px] font-semibold text-coffee">{market.city}</span>
-            <span className="text-[12px] text-muted"> · {market.region}</span>
+        <div className="flex items-start gap-1.5 mb-2">
+          <MapPin size={11} className="text-muted/60 mt-0.5 flex-shrink-0" />
+          <span className="text-[12px] text-coffee leading-snug">
+            <span className="font-medium">{market.city}</span>
             {market.address && (
-              <p className="text-[11px] text-muted mt-0.5 leading-snug">{market.address}</p>
+              <span className="text-muted"> · {market.address}</span>
             )}
-          </div>
+          </span>
         </div>
 
-        {/* Orari + ingresso */}
-        {(market.start_time || market.price_info) && (
-          <div className="flex items-center gap-4 mb-3">
-            {market.start_time && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-coffee font-medium">
-                <Clock size={11} className="text-muted/70" />
-                {market.start_time}{market.end_time ? `–${market.end_time}` : ''}
-              </span>
-            )}
-            {market.price_info && (
-              <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${
-                isFree ? 'text-emerald-700' : 'text-coffee'
-              }`}>
-                <Ticket size={11} className="opacity-60" />
-                {market.price_info}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Descrizione */}
-        {!compact && desc && (
-          <p className="text-[12px] text-muted leading-[1.65] mb-3.5 line-clamp-3">
-            {desc}
-          </p>
-        )}
+        {/* Prossima data + cadenza */}
+        <div className="flex items-center gap-3 mb-3">
+          {nextDate && (
+            <span className="text-[11px] text-muted">
+              {DAYS[nextDate.getDay()]} {nextDate.getDate()} {MONTHS[nextDate.getMonth()]}
+            </span>
+          )}
+          {market.schedule_notes && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+              <Clock size={10} className="text-muted/50" />
+              {market.schedule_notes}
+            </span>
+          )}
+          {!market.schedule_notes && market.frequency && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+              <RefreshCw size={9} className="text-muted/50" />
+              {FREQ_LABEL[market.frequency] ?? market.frequency}
+            </span>
+          )}
+        </div>
 
         {/* Categorie */}
-        {cats.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3.5">
+        {cats.length > 0 && !compact && (
+          <div className="flex flex-wrap gap-1 mb-3">
             {cats.map(c => (
-              <span
-                key={c}
-                className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border"
-                style={{ color: accent, borderColor: `${accent}40`, background: `${accent}10` }}
-              >
+              <span key={c} className="text-[10px] text-muted bg-surface-soft border border-border/60 px-2 py-0.5 rounded-full">
                 {c}
               </span>
             ))}
-          </div>
-        )}
-
-        {/* Tip */}
-        {!compact && market.tips && (
-          <div className="flex items-start gap-2.5 bg-[#fdf8ee] border border-[#e8d69a] rounded-xl px-4 py-3 mb-4">
-            <Lightbulb size={13} className="text-[#b8960a] flex-shrink-0 mt-0.5" />
-            <p className="text-[11.5px] text-[#5a4a00]/80 leading-[1.6] line-clamp-3">
-              {market.tips}
-            </p>
+            {(market.categories?.length ?? 0) > 3 && (
+              <span className="text-[10px] text-muted/50 self-center">+{(market.categories?.length ?? 0) - 3}</span>
+            )}
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3.5 border-t border-border/50">
+        <div className="flex items-center justify-between pt-2.5 border-t border-border/40">
           <div className="flex items-center gap-1.5">
-            {isFree ? (
-              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                Ingresso gratuito
-              </span>
+            {market.avg_rating > 0 ? (
+              <>
+                <Star size={11} className="text-gold fill-gold" />
+                <span className="text-[12px] font-semibold text-espresso">{market.avg_rating.toFixed(1)}</span>
+                {market.review_count > 0 && (
+                  <span className="text-[11px] text-muted">({market.review_count})</span>
+                )}
+              </>
             ) : (
-              market.price_info && (
-                <span className="text-[11px] text-muted">{market.price_info}</span>
-              )
+              <span className="text-[11px] text-muted/50">
+                {FREQ_LABEL[market.frequency ?? ''] ?? ''}
+              </span>
             )}
           </div>
           <div className="flex items-center gap-2" onClick={e => e.preventDefault()}>
             <SaveButton type="market" targetId={market.id} />
-            <span className="inline-flex items-center gap-1 text-[12px] font-bold group-hover:gap-2 transition-all duration-150"
-              style={{ color: accent }}>
-              Scopri di più <ArrowRight size={12} />
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sienna group-hover:gap-1.5 transition-all duration-150">
+              Scopri <ArrowRight size={10} />
             </span>
           </div>
         </div>
