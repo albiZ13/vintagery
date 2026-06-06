@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import MarketCard from '@/components/MarketCard'
+import AddToCalendar from '@/components/AddToCalendar'
 import { REGION_CONFIG, AREA_PATTERNS, DEFAULT_CONFIG } from '@/lib/regions-config'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
@@ -207,31 +208,44 @@ export default async function MercatinoPage({ params }: Props) {
           </div>
         )}
 
-        {/* Link */}
-        {(market.website || market.instagram) && (
-          <div className="flex flex-wrap gap-3">
-            {market.website && (
-              <a
-                href={market.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 border border-border bg-white text-coffee font-semibold text-[12px] px-4 py-2.5 rounded-xl hover:border-sienna hover:text-sienna transition-colors"
-              >
-                <Globe size={14} /> Sito ufficiale
-              </a>
-            )}
-            {market.instagram && (
-              <a
-                href={`https://instagram.com/${market.instagram.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 border border-border bg-white text-coffee font-semibold text-[12px] px-4 py-2.5 rounded-xl hover:border-sienna hover:text-sienna transition-colors"
-              >
-                <Instagram size={14} /> @{market.instagram.replace('@', '')}
-              </a>
-            )}
-          </div>
-        )}
+        {/* Azioni: calendario + link */}
+        <div className="flex flex-wrap gap-3">
+          {market.next_date && (
+            <AddToCalendar event={{
+              id:          market.id,
+              name:        market.name,
+              start_date:  market.next_date,
+              start_time:  market.start_time ?? undefined,
+              end_time:    market.end_time ?? undefined,
+              address:     market.address ?? undefined,
+              city:        market.city,
+              region:      market.region,
+              description: market.description ?? undefined,
+              price_info:  market.price_info ?? undefined,
+              organizer:   market.organizer_name ?? undefined,
+            }} />
+          )}
+          {market.website && (
+            <a
+              href={market.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-border bg-white text-coffee font-semibold text-[12px] px-4 py-2.5 rounded-xl hover:border-sienna hover:text-sienna transition-colors"
+            >
+              <Globe size={14} /> Sito ufficiale
+            </a>
+          )}
+          {market.instagram && (
+            <a
+              href={`https://instagram.com/${market.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-border bg-white text-coffee font-semibold text-[12px] px-4 py-2.5 rounded-xl hover:border-sienna hover:text-sienna transition-colors"
+            >
+              <Instagram size={14} /> @{market.instagram.replace('@', '')}
+            </a>
+          )}
+        </div>
 
         {/* Altri mercati */}
         {related && related.length > 0 && (
