@@ -1,5 +1,7 @@
+'use client'
+
 import Image from 'next/image'
-import { Heart, Tag } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import type { ShopPost } from '@/types'
 
 interface Props {

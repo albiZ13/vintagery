@@ -174,12 +174,11 @@ export default function FeaturedMarketCard({ event, weather }: Props) {
             {isFree ? 'Ingresso gratuito' : event.price_info}
           </span>
         )}
-        {event.address && (
+        {mapsUrl && event.address && (
           <a
-            href={mapsUrl ?? '#'}
-            target={mapsUrl ? '_blank' : undefined}
+            href={mapsUrl}
+            target="_blank"
             rel="noopener noreferrer"
-            onClick={e => !mapsUrl && e.preventDefault()}
             className="inline-flex items-center gap-1.5 text-[12px] text-muted hover:text-sienna transition-colors"
           >
             <MapPin size={11} className="opacity-60" />
