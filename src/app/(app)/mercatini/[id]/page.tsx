@@ -3,12 +3,13 @@ export const revalidate = 86400 // rigenera ogni 24h — dati mercato cambiano r
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Globe, Instagram, Phone, Mail, Calendar, BadgeCheck, ArrowLeft } from 'lucide-react'
+import { MapPin, Globe, Instagram, Phone, Mail, Calendar, BadgeCheck, ArrowLeft, Clock, Tag, Lightbulb } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import StarRating from '@/components/StarRating'
 import ReviewCard from '@/components/ReviewCard'
 import ReviewForm from '@/components/ReviewForm'
 import { formatRating, getFrequencyLabel } from '@/lib/utils'
+import { REGION_CONFIG, DEFAULT_CONFIG } from '@/lib/regions-config'
 import type { Metadata } from 'next'
 
 interface Props { params: { id: string } }
@@ -47,8 +48,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const MAP_PLACEHOLDER = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80'
-
 export default async function MercatinoPage({ params }: Props) {
   const supabase = createServerClient()
 
@@ -63,6 +62,9 @@ export default async function MercatinoPage({ params }: Props) {
   ])
 
   if (!market) notFound()
+
+  const cfg      = REGION_CONFIG[market.region] ?? DEFAULT_CONFIG
+  const gradient = `linear-gradient(135deg, ${cfg.gradient[0]} 0%, ${cfg.gradient[1]} 100%)`
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -107,15 +109,20 @@ export default async function MercatinoPage({ params }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: main content */}
         <div className="lg:col-span-2">
-          {/* Hero image */}
-          <div className="relative h-72 rounded-xl overflow-hidden bg-cream mb-6">
-            <Image
-              src={market.image_url ?? MAP_PLACEHOLDER}
-              alt={market.name}
-              fill
-              className="object-cover"
-              priority
-            />
+          {/* Hero image / gradient fallback */}
+          <div className="relative h-64 rounded-xl overflow-hidden mb-6" style={{ background: gradient }}>
+            {market.image_url ? (
+              <Image src={market.image_url} alt={market.name} fill className="object-cover" priority />
+            ) : (
+              <>
+                <div className="absolute inset-0 opacity-[0.04]"
+                  style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                <div className="absolute inset-0 flex flex-col justify-end p-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: cfg.accent }}>{market.region}</p>
+                  <h2 className="font-serif font-bold text-parchment leading-tight" style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>{market.city}</h2>
+                </div>
+              </>
+            )}
             {market.is_featured && (
               <span className="absolute top-3 right-3 badge-gold">In evidenza</span>
             )}
@@ -161,6 +168,20 @@ export default async function MercatinoPage({ params }: Props) {
             </div>
           )}
 
+          {/* Tips */}
+          {market.tips && (
+            <div className="mb-8">
+              <h2 className="font-serif font-semibold text-espresso text-[17px] mb-3 flex items-center gap-2">
+                <Lightbulb size={16} className="text-sienna" /> Consigli pratici
+              </h2>
+              <div className="bg-cream border border-border rounded-xl p-4 space-y-2">
+                {market.tips.split('\n').filter(Boolean).map((p: string, i: number) => (
+                  <p key={i} className="text-coffee text-[13px] leading-relaxed">{p}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Recensioni */}
           <div className="mb-8">
             <h2 className="font-serif font-semibold text-espresso text-[19px] mb-1">
@@ -199,6 +220,22 @@ export default async function MercatinoPage({ params }: Props) {
                       </span>
                     )}
                   </div>
+                </li>
+              )}
+
+              {(market.start_time || market.end_time) && (
+                <li className="flex items-center gap-3">
+                  <Clock size={15} className="text-sienna flex-shrink-0" />
+                  <span className="text-coffee">
+                    {[market.start_time, market.end_time].filter(Boolean).join(' – ')}
+                  </span>
+                </li>
+              )}
+
+              {market.price_info && (
+                <li className="flex items-center gap-3">
+                  <Tag size={15} className="text-sienna flex-shrink-0" />
+                  <span className="text-coffee">{market.price_info}</span>
                 </li>
               )}
 
