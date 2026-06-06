@@ -15,7 +15,7 @@ function getInitials(first?: string | null, last?: string | null, username?: str
   return '?'
 }
 
-const MARKET_COLS = 'id,name,description,city,region,address,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count,event_dates,organizer_id,organizer_name,created_at'
+const MARKET_COLS = 'id,name,description,city,region,address,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count,event_dates,organizer_id,organizer_name,created_at,tips,start_time,end_time,price_info,active_months,tags'
 const SHOP_COLS   = 'id,name,city,region,image_url,plan,is_featured,is_verified,avg_rating,review_count,followers_count,categories,posts_count'
 
 export default async function ProfilePage({ params }: Props) {
