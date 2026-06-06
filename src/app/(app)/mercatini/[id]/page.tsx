@@ -10,6 +10,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import MarketCard from '@/components/MarketCard'
 import AddToCalendar from '@/components/AddToCalendar'
 import { REGION_CONFIG, AREA_PATTERNS, DEFAULT_CONFIG } from '@/lib/regions-config'
+import { fetchWeatherForDates, wmoInfo } from '@/lib/weather'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
 
@@ -52,6 +53,20 @@ export default async function MercatinoPage({ params }: Props) {
   ])
 
   if (!market) notFound()
+
+  // Meteo: solo se la prossima data è entro 7 giorni
+  let weather: Awaited<ReturnType<typeof fetchWeatherForDates>> = []
+  if (market.next_date) {
+    const daysUntil = Math.floor((new Date(market.next_date + 'T12:00:00').getTime() - Date.now()) / 86400000)
+    if (daysUntil >= 0 && daysUntil <= 7) {
+      try {
+        weather = await Promise.race([
+          fetchWeatherForDates(market.city, [market.next_date]),
+          new Promise<[]>(resolve => setTimeout(() => resolve([]), 4000)),
+        ])
+      } catch { weather = [] }
+    }
+  }
 
   const cfg     = REGION_CONFIG[market.region] ?? DEFAULT_CONFIG
   const pattern = AREA_PATTERNS[cfg.area] ?? AREA_PATTERNS.default
@@ -110,15 +125,39 @@ export default async function MercatinoPage({ params }: Props) {
             {market.name}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="inline-flex items-center gap-1.5 text-white/80 text-[13px]">
-              <MapPin size={13} /> {market.city}, {market.region}
-            </span>
-            {dateLabel && (
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <span className="inline-flex items-center gap-1.5 text-white/80 text-[13px]">
-                <Clock size={13} /> {dateLabel}
+                <MapPin size={13} /> {market.city}, {market.region}
               </span>
-            )}
+              {dateLabel && (
+                <span className="inline-flex items-center gap-1.5 text-white/80 text-[13px]">
+                  <Clock size={13} /> {dateLabel}
+                </span>
+              )}
+            </div>
+
+            {weather.length > 0 && (() => {
+              const w = weather[0]
+              const { emoji } = wmoInfo(w.wmoCode)
+              const maxPrecip = Math.max(...weather.map(x => x.precipProbability))
+              return (
+                <div className="flex-shrink-0 rounded-xl px-4 py-3 text-right"
+                  style={{ background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.14)' }}>
+                  <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-1">Meteo</p>
+                  <div className="flex items-center gap-2 justify-end">
+                    <span className="text-[22px] leading-none">{emoji}</span>
+                    <div>
+                      <p className="text-[15px] font-bold text-white leading-none">{w.tempMax}°</p>
+                      <p className="text-[10px] text-white/45">{w.tempMin}°</p>
+                    </div>
+                  </div>
+                  {maxPrecip > 5 && (
+                    <p className="text-[9px] text-white/35 mt-1.5">☔ {maxPrecip}%</p>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
         </div>
@@ -211,6 +250,7 @@ export default async function MercatinoPage({ params }: Props) {
         {/* Azioni: calendario + link */}
         <div className="flex flex-wrap gap-3">
           {market.next_date && (
+          <div className="flex-1">
             <AddToCalendar event={{
               id:          market.id,
               name:        market.name,
@@ -224,6 +264,7 @@ export default async function MercatinoPage({ params }: Props) {
               price_info:  market.price_info ?? undefined,
               organizer:   market.organizer_name ?? undefined,
             }} />
+          </div>
           )}
           {market.website && (
             <a
