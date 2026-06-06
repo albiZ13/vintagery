@@ -6,7 +6,6 @@ import { MapPin, Sparkles } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import EventCard, { type MarketEvent } from '@/components/EventCard'
 import MarketCard from '@/components/MarketCard'
-import RecurringMarketCard from '@/components/RecurringMarketCard'
 import EventsClient from '@/components/EventsClient'
 import SubscribeWidget from '@/components/SubscribeWidget'
 import RegionDropdown from '@/components/RegionDropdown'
@@ -98,13 +97,14 @@ async function TuttiIContenuti({ searchParams }: Props) {
     .order('avg_rating',  { ascending: false })
   if (regionFilter !== 'all') marketsQuery = marketsQuery.eq('region', regionFilter)
 
+  // market_events ora contiene SOLO eventi una-tantum (i ricorrenti sono tutti in markets)
   let eventsQuery = supabase
     .from('market_events')
     .select(EVENT_COLS)
     .gte('start_date', startOfMonth)
     .lte('start_date', endOfMonth)
-    .order('is_recurring', { ascending: false })
-    .order('start_date',   { ascending: true })
+    .eq('is_recurring', false)
+    .order('start_date', { ascending: true })
   if (typeFilter === 'gratuiti') {
     eventsQuery = eventsQuery.or('price_info.ilike.%gratuito%,price_info.ilike.%gratis%,price_info.ilike.%free%')
   } else if (typeFilter !== 'all') {
@@ -120,15 +120,11 @@ async function TuttiIContenuti({ searchParams }: Props) {
   ])
 
   const allMarkets   = (markets ?? []) as Market[]
-  const allEvents    = (events  ?? []) as MarketEvent[]
-
-  // Separa eventi ricorrenti da una-tantum
-  const recurringEvents = allEvents.filter(e => e.is_recurring)
-  const onetimeEvents   = allEvents.filter(e => !e.is_recurring)
+  const onetimeEvents = (events ?? []) as MarketEvent[]
 
   const todayStr = new Date().toISOString().split('T')[0]
 
-  const totalItems = allMarkets.length + allEvents.length
+  const totalItems = allMarkets.length + onetimeEvents.length
 
   if (totalItems === 0) {
     return (
@@ -150,42 +146,27 @@ async function TuttiIContenuti({ searchParams }: Props) {
     return m
   }
 
-  const marketsByRegion   = groupByRegion(allMarkets)
-  const recurringByRegion = groupByRegion(recurringEvents)
-  const onetimeByRegion   = groupByRegion(onetimeEvents)
-
-  // Regioni con almeno un mercato fisso o ricorrente
-  const regionsWithRecurring = Array.from(new Set([
-    ...Object.keys(marketsByRegion),
-    ...Object.keys(recurringByRegion),
-  ])).sort()
+  const marketsByRegion = groupByRegion(allMarkets)
+  const onetimeByRegion = groupByRegion(onetimeEvents)
+  const regionsWithMarkets = Object.keys(marketsByRegion).sort()
   const regionsWithOnetime = Object.keys(onetimeByRegion).sort()
-
-  const totalRecurring = allMarkets.length + recurringEvents.length
 
   return (
     <div className="space-y-10">
 
-      {/* ── Mercati — unico gruppo ────────────────────────────────────── */}
-      {totalRecurring > 0 && (
+      {/* ── Mercati ricorrenti (tutti da tabella markets) ─────────────── */}
+      {allMarkets.length > 0 && (
         <section>
-          {regionsWithRecurring.map(region => {
-            const fixed   = marketsByRegion[region]   ?? []
-            const monthly = recurringByRegion[region] ?? []
-            return (
-              <div key={region}>
-                <RegionLabel region={region} count={fixed.length + monthly.length} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {fixed.map((m: Market) => (
-                    <MarketCard key={m.id} market={m} />
-                  ))}
-                  {monthly.map((e: MarketEvent) => (
-                    <RecurringMarketCard key={e.id} event={e} />
-                  ))}
-                </div>
+          {regionsWithMarkets.map(region => (
+            <div key={region}>
+              <RegionLabel region={region} count={marketsByRegion[region].length} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {marketsByRegion[region].map((m: Market) => (
+                  <MarketCard key={m.id} market={m} />
+                ))}
               </div>
-            )
-          })}
+            </div>
+          ))}
         </section>
       )}
 

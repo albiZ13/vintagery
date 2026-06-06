@@ -54,17 +54,17 @@ function advanceMonth(year: number, month: number): { year: number; month: numbe
 }
 
 /**
- * Dato il campo `description` di un market_event (contiene "Cadenza: XXX"),
- * restituisce la prossima data futura nel formato YYYY-MM-DD.
- * Restituisce null se la cadenza non è riconoscibile.
+ * Calcola la prossima data futura dalla stringa di cadenza (es. "Ogni domenica", "Prima domenica del mese").
+ * Accetta sia la stringa grezza che il campo description con "Cadenza: XXX" incorporato.
  */
-export function computeNextDate(description: string | null, today: Date): string | null {
-  if (!description) return null
+export function computeNextDate(scheduleOrDescription: string | null, today: Date): string | null {
+  if (!scheduleOrDescription) return null
 
-  const m = description.match(/Cadenza:\s*(.+?)(?:\n|$)/i)
-  if (!m) return null
+  // Supporta sia schedule_notes diretto che description con "Cadenza: XXX"
+  const cadenzaMatch = scheduleOrDescription.match(/Cadenza:\s*(.+?)(?:\n|$)/i)
+  const raw = cadenzaMatch ? cadenzaMatch[1].trim() : scheduleOrDescription.trim()
 
-  const c = normalize(m[1].trim())
+  const c = normalize(raw)
 
   if (c.includes('tutti i giorni')) {
     const d = new Date(today)

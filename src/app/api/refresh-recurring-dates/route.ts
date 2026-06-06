@@ -19,11 +19,12 @@ export async function GET(req: NextRequest) {
   const today    = new Date()
   const todayStr = localDateStr(today)
 
+  // Legge dalla tabella markets i record con next_date scaduta
   const { data: stale, error } = await supabase
-    .from('market_events')
-    .select('id, name, start_date, end_date, description')
-    .eq('is_recurring', true)
-    .lt('start_date', todayStr)
+    .from('markets')
+    .select('id, name, next_date, schedule_notes, frequency')
+    .lt('next_date', todayStr)
+    .not('schedule_notes', 'is', null)
 
   if (error) {
     console.error('[refresh-dates]', error.message)
@@ -38,32 +39,19 @@ export async function GET(req: NextRequest) {
   let skipped = 0
   const errors: string[] = []
 
-  for (const ev of stale) {
-    const nextDate = computeNextDate(ev.description, today)
+  for (const market of stale) {
+    // computeNextDate ora accetta direttamente schedule_notes
+    const nextDate = computeNextDate(market.schedule_notes, today)
 
     if (!nextDate) { skipped++; continue }
 
-    // Mantieni la durata originale per eventi multi-giorno
-    let newEndDate: string | null = null
-    if (ev.end_date && ev.end_date !== ev.start_date) {
-      const duration = Math.round(
-        (new Date(ev.end_date).getTime() - new Date(ev.start_date).getTime()) / 86400000
-      )
-      const end = new Date(nextDate + 'T12:00:00')
-      end.setDate(end.getDate() + duration)
-      newEndDate = localDateStr(end)
-    }
-
     const { error: updateErr } = await supabase
-      .from('market_events')
-      .update({
-        start_date: nextDate,
-        ...(newEndDate !== null ? { end_date: newEndDate } : {}),
-      })
-      .eq('id', ev.id)
+      .from('markets')
+      .update({ next_date: nextDate })
+      .eq('id', market.id)
 
     if (updateErr) {
-      errors.push(`${ev.name}: ${updateErr.message}`)
+      errors.push(`${market.name}: ${updateErr.message}`)
     } else {
       updated++
     }

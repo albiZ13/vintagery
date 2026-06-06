@@ -6,7 +6,6 @@ import { MapPin, Calendar, ArrowLeft, Sparkles } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import MarketCard from '@/components/MarketCard'
 import EventCard, { type MarketEvent } from '@/components/EventCard'
-import RecurringMarketCard from '@/components/RecurringMarketCard'
 import { CITIES } from '@/lib/cities'
 import type { Metadata } from 'next'
 import type { Market } from '@/types'
@@ -71,9 +70,8 @@ export default async function CityPage({ params }: Props) {
       .limit(50),
   ])
 
-  const recurringEvents = (events ?? []).filter(e => e.is_recurring) as MarketEvent[]
-  const onetimeEvents   = (events ?? []).filter(e => !e.is_recurring) as MarketEvent[]
-  const totalItems = (markets?.length ?? 0) + (events?.length ?? 0)
+  const onetimeEvents = (events ?? []).filter(e => !e.is_recurring) as MarketEvent[]
+  const totalItems = (markets?.length ?? 0) + onetimeEvents.length
 
   if (totalItems === 0) {
     notFound()
@@ -100,33 +98,17 @@ export default async function CityPage({ params }: Props) {
         </p>
       </div>
 
-      {/* Mercati fissi dalla tabella markets */}
+      {/* Mercati ricorrenti (tutti da tabella markets) */}
       {(markets?.length ?? 0) > 0 && (
         <section className="mb-10">
           <h2 className="font-serif text-lg font-semibold text-espresso mb-5 flex items-center gap-2">
             <Calendar size={16} className="text-sienna" />
-            Mercatini fissi
+            Mercatini ricorrenti
             <span className="text-muted text-sm font-normal">({markets!.length})</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {markets!.map((m: Market) => (
-              <MarketCard key={m.id} market={m} compact />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Mercati ricorrenti */}
-      {recurringEvents.length > 0 && (
-        <section className="mb-10">
-          <h2 className="font-serif text-lg font-semibold text-espresso mb-5 flex items-center gap-2">
-            <Calendar size={16} className="text-sienna" />
-            Ricorrenti
-            <span className="text-muted text-sm font-normal">({recurringEvents.length})</span>
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recurringEvents.map((e: MarketEvent) => (
-              <RecurringMarketCard key={e.id} event={e} />
+              <MarketCard key={m.id} market={m} />
             ))}
           </div>
         </section>

@@ -128,37 +128,72 @@ Regole:
 
       for (const ev of events) {
         if (!ev.name || !ev.city || !ev.start_date) continue
-        const dedupKey = `${ev.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()}|${ev.start_date}|${ev.city.toLowerCase().trim()}`
-        const { error } = await supabase.from('market_events').upsert({
-          name:         ev.name,
-          description:  ev.description ?? null,
-          event_type:   ev.event_type ?? 'mercatino',
-          city:         ev.city,
-          region,
-          address:      ev.address ?? null,
-          lat:          ev.lat ?? null,
-          lng:          ev.lng ?? null,
-          start_date:   ev.start_date,
-          end_date:     ev.end_date ?? null,
-          start_time:   ev.start_time ?? null,
-          end_time:     ev.end_time ?? null,
-          website:      ev.website ?? null,
-          instagram:    ev.instagram ?? null,
-          price_info:   ev.price_info ?? null,
-          organizer:    ev.organizer ?? null,
-          source_url:   ev.source_url ?? null,
-          source:       'anthropic-sync',
-          is_verified:  false,
-          is_featured:  false,
-          is_recurring: ev.is_recurring ?? false,
-          categories:   ev.categories ?? null,
-          tags:         ev.tags ?? null,
-          month,
-          year,
-          dedup_key:    dedupKey,
-        }, { onConflict: 'dedup_key', ignoreDuplicates: true })
 
-        if (!error) inserted++
+        if (ev.is_recurring) {
+          // Mercato ricorrente → upsert in markets (non sovrascrivere se già esiste)
+          const { data: existing } = await supabase
+            .from('markets')
+            .select('id')
+            .ilike('name', ev.name.trim())
+            .ilike('city', ev.city.trim())
+            .maybeSingle()
+
+          if (!existing) {
+            const { error } = await supabase.from('markets').insert({
+              name:           ev.name,
+              description:    ev.description ?? null,
+              city:           ev.city,
+              region,
+              address:        ev.address ?? null,
+              start_time:     ev.start_time ?? null,
+              end_time:       ev.end_time ?? null,
+              price_info:     ev.price_info ?? null,
+              website:        ev.website ?? null,
+              instagram:      ev.instagram ?? null,
+              organizer_name: ev.organizer ?? null,
+              categories:     ev.categories
+                ? (ev.categories as string[]).map((c: string) => c.toLowerCase())
+                : null,
+              is_verified:    false,
+              is_featured:    false,
+              frequency:      'mensile',
+              next_date:      ev.start_date,
+            })
+            if (!error) inserted++
+          }
+        } else {
+          // Evento una-tantum → market_events come prima
+          const dedupKey = `${ev.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()}|${ev.start_date}|${ev.city.toLowerCase().trim()}`
+          const { error } = await supabase.from('market_events').upsert({
+            name:         ev.name,
+            description:  ev.description ?? null,
+            event_type:   ev.event_type ?? 'mercatino',
+            city:         ev.city,
+            region,
+            address:      ev.address ?? null,
+            lat:          ev.lat ?? null,
+            lng:          ev.lng ?? null,
+            start_date:   ev.start_date,
+            end_date:     ev.end_date ?? null,
+            start_time:   ev.start_time ?? null,
+            end_time:     ev.end_time ?? null,
+            website:      ev.website ?? null,
+            instagram:    ev.instagram ?? null,
+            price_info:   ev.price_info ?? null,
+            organizer:    ev.organizer ?? null,
+            source_url:   ev.source_url ?? null,
+            source:       'anthropic-sync',
+            is_verified:  false,
+            is_featured:  false,
+            is_recurring: false,
+            categories:   ev.categories ?? null,
+            tags:         ev.tags ?? null,
+            month,
+            year,
+            dedup_key:    dedupKey,
+          }, { onConflict: 'dedup_key', ignoreDuplicates: true })
+          if (!error) inserted++
+        }
       }
     } catch (err: unknown) {
       // Non esponiamo dettagli interni all'esterno — solo contatore
