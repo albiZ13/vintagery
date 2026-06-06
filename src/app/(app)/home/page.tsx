@@ -13,14 +13,6 @@ import type { MarketEvent, Shop } from '@/types'
 const EVENT_COLS = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips,avg_rating,review_count'
 const SHOP_COLS  = 'id,name,description,city,region,address,categories,image_url,is_featured,is_verified,avg_rating,review_count,followers_count,website,instagram'
 
-const CATEGORY_TILES = [
-  { value: 'antiquariato',  label: 'Antiquariato',  emoji: '🏛️' },
-  { value: 'mercatino',     label: 'Mercatini',     emoji: '🏪' },
-  { value: 'vinile',        label: 'Vinili',        emoji: '🎵' },
-  { value: 'svuotacantina', label: 'Svuotacantina', emoji: '📦' },
-  { value: 'fumetti',       label: 'Fumetti',       emoji: '🎭' },
-  { value: 'collezionismo', label: 'Collezionismo', emoji: '✨' },
-]
 
 function getWeekend(): { sat: string; sun: string; label: string } {
   const today = new Date()
@@ -232,28 +224,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Esplora per tipo ──────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 pb-10">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sienna mb-4">
-          Esplora per tipo
-        </p>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {CATEGORY_TILES.map(({ value, label, emoji }) => (
-            <Link
-              key={value}
-              href={`/mercatini?type=${value}`}
-              className="flex flex-col items-center gap-2 py-4 bg-white border border-border rounded-2xl hover:border-sienna/40 hover:shadow-md transition-all group"
-            >
-              <span className="text-[22px] leading-none select-none">{emoji}</span>
-              <span className="text-[11px] font-semibold text-coffee group-hover:text-sienna transition-colors text-center leading-tight">
-                {label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Negozi vintage ────────────────────────────────────────── */}
+{/* ── Negozi vintage ────────────────────────────────────────── */}
       {hasShops && (
         <section className="max-w-5xl mx-auto px-4 pb-12">
           <div className="flex items-end justify-between mb-5">
