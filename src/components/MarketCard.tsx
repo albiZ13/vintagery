@@ -85,9 +85,19 @@ export default function MarketCard({ market, compact = false }: Props) {
       <div className="px-5 pt-4 pb-5">
 
         {d && (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-1.5" style={{ color: accent }}>
-            {DAYS_LONG[d.getDay()]} {d.getDate()} {MONTHS[d.getMonth()].toUpperCase()}
-          </p>
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <span className="font-serif font-bold leading-none" style={{ color: accent, fontSize: '22px' }}>
+              {d.getDate()}
+            </span>
+            <div>
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.16em] leading-none" style={{ color: accent }}>
+                {DAYS_LONG[d.getDay()].slice(0, 3)}
+              </p>
+              <p className="text-[9px] font-medium uppercase tracking-[0.1em] text-muted mt-0.5">
+                {MONTHS[d.getMonth()]} {d.getFullYear()}
+              </p>
+            </div>
+          </div>
         )}
 
         <h3 className={`font-serif font-bold text-espresso leading-[1.2] mb-3 group-hover:text-sienna transition-colors duration-150 ${

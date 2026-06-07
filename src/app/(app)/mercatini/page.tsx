@@ -157,16 +157,24 @@ async function TuttiIContenuti({ searchParams }: Props) {
       {/* ── Mercati ricorrenti (tutti da tabella markets) ─────────────── */}
       {allMarkets.length > 0 && (
         <section>
-          {regionsWithMarkets.map(region => (
+          {regionsWithMarkets.map(region => {
+            const sorted = [...marketsByRegion[region]].sort((a, b) => {
+              if (a.is_featured !== b.is_featured) return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
+              const da = a.next_date ?? '9999-99-99'
+              const db = b.next_date ?? '9999-99-99'
+              return da.localeCompare(db)
+            })
+            return (
             <div key={region}>
-              <RegionLabel region={region} count={marketsByRegion[region].length} />
+              <RegionLabel region={region} count={sorted.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {marketsByRegion[region].map((m: Market) => (
+                {sorted.map((m: Market) => (
                   <MarketCard key={m.id} market={m} />
                 ))}
               </div>
             </div>
-          ))}
+            )
+          })}
         </section>
       )}
 
