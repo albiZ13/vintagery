@@ -63,9 +63,9 @@ Regole:
 
     const result = JSON.parse(jsonMatch[0])
 
-    if (result.confidence === 'high') {
-      const updates = {}
+    const updates = { last_validated_at: new Date().toISOString() }
 
+    if (result.confidence === 'high') {
       if (result.schedule_notes_corrected &&
           result.schedule_notes_corrected !== market.schedule_notes) {
         updates.schedule_notes = result.schedule_notes_corrected
@@ -79,16 +79,19 @@ Regole:
         updates.end_time = result.end_time_corrected
       }
 
-      if (Object.keys(updates).length > 0) {
-        const { error: updateErr } = await supabase
-          .from('markets').update(updates).eq('id', market.id)
-        if (!updateErr) updated.push({ name: market.name, updates })
-        else console.warn(`  ⚠️ Update error ${market.name}:`, updateErr.message)
-      }
-
       if (result.still_active === false) {
         flagged.push({ name: market.name, city: market.city, reason: 'chiusura definitiva segnalata' })
       }
+    }
+
+    const { error: updateErr } = await supabase
+      .from('markets').update(updates).eq('id', market.id)
+    if (updateErr) console.warn(`  ⚠️ Update error ${market.name}:`, updateErr.message)
+
+    const contentUpdates = Object.keys(updates).filter(k => k !== 'last_validated_at')
+    if (contentUpdates.length > 0) {
+      const contentChanges = Object.fromEntries(contentUpdates.map(k => [k, updates[k]]))
+      updated.push({ name: market.name, updates: contentChanges })
     }
 
     processed++
