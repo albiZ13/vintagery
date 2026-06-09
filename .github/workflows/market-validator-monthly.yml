@@ -1,0 +1,34 @@
+name: Validazione Mensile Mercati
+
+on:
+  schedule:
+    - cron: '0 5 1 * *'   # 1° di ogni mese alle 07:00 ora di Roma
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Aggiorna e valida tutti i mercati
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installa dipendenze
+        run: npm install --no-save @supabase/supabase-js @anthropic-ai/sdk
+
+      - name: Refresh date prossime occorrenze
+        run: |
+          curl -sf -X POST https://vintagery.it/api/refresh-recurring-dates \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" || true
+
+      - name: Valida e aggiorna mercati
+        run: node scripts/validate-markets.mjs
+        env:
+          SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
