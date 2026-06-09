@@ -4,33 +4,55 @@ import Link from 'next/link'
 import { ArrowRight, MapPin, RefreshCw } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import MarketCard from '@/components/MarketCard'
+import EventCard from '@/components/EventCard'
 import FeaturedMarketCard from '@/components/FeaturedMarketCard'
 import ShopCard from '@/components/ShopCard'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
 import { fetchWeatherForDates, type WeatherDay } from '@/lib/weather'
-import type { Market, Shop } from '@/types'
+import type { Market, MarketEvent, Shop } from '@/types'
 
 const MARKET_COLS = 'id,name,description,city,region,address,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count,tips,start_time,end_time,price_info,active_months,tags'
-const SHOP_COLS  = 'id,name,description,city,region,address,categories,image_url,is_featured,is_verified,avg_rating,review_count,followers_count,website,instagram'
+const EVENT_COLS  = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips'
+const SHOP_COLS   = 'id,name,description,city,region,address,categories,image_url,is_featured,is_verified,avg_rating,review_count,followers_count,website,instagram'
 
-function getWeekend(): { sat: string; sun: string; label: string } {
-  const today = new Date()
-  const day   = today.getDay()
-  const sat   = new Date(today)
-  const sun   = new Date(today)
-  sat.setDate(today.getDate() + (day === 6 ? 0 : 6 - day))
-  sun.setDate(today.getDate() + (day === 0 ? 0 : 7 - day))
-  const fmt = (d: Date) => d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })
-  return {
-    sat:   sat.toISOString().slice(0, 10),
-    sun:   sun.toISOString().slice(0, 10),
-    label: `${fmt(sat)} – ${fmt(sun)}`,
-  }
-}
+const DAYS_IT   = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
+const MONTHS_IT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']
 
 function featuredScore(m: Market): number {
   if (!m.review_count || !m.avg_rating) return 0
   return m.avg_rating * Math.log(m.review_count + 1)
+}
+
+function sectionLabel(earliestDate: string | null): { eyebrow: string; heading: string } {
+  if (!earliestDate) return { eyebrow: 'Prossimi appuntamenti', heading: 'Nei prossimi giorni' }
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  const todayDay = today.getDay()
+  const satOffset = todayDay === 6 ? 0 : (6 - todayDay)
+  const sat = new Date(today); sat.setDate(today.getDate() + satOffset)
+  const sun = new Date(today); sun.setDate(today.getDate() + (todayDay === 0 ? 0 : 7 - todayDay))
+  const satStr = sat.toISOString().slice(0, 10)
+  const sunStr = sun.toISOString().slice(0, 10)
+
+  if (earliestDate === todayStr) return { eyebrow: 'Prossimi appuntamenti', heading: 'Oggi' }
+  const d = new Date(earliestDate + 'T12:00:00')
+  const daysUntil = Math.round((new Date(earliestDate + 'T12:00:00').getTime() - new Date(todayStr + 'T12:00:00').getTime()) / 86400000)
+  if (daysUntil === 1) return { eyebrow: 'Prossimi appuntamenti', heading: 'Domani' }
+
+  if (earliestDate === satStr || earliestDate === sunStr) {
+    const fmt = (date: Date) => `${date.getDate()} ${MONTHS_IT[date.getMonth()]}`
+    return { eyebrow: 'Questo weekend', heading: `${fmt(sat)} – ${fmt(sun)}` }
+  }
+  if (earliestDate > todayStr && earliestDate < satStr) {
+    return {
+      eyebrow: 'Questa settimana',
+      heading: `${DAYS_IT[d.getDay()]} ${d.getDate()} ${MONTHS_IT[d.getMonth()]}`,
+    }
+  }
+  return {
+    eyebrow: 'Prossimi appuntamenti',
+    heading: `${DAYS_IT[d.getDay()]} ${d.getDate()} ${MONTHS_IT[d.getMonth()]}`,
+  }
 }
 
 export default async function HomePage() {
@@ -52,44 +74,67 @@ export default async function HomePage() {
     }
   } catch {}
 
-  const region  = profile?.region ?? null
-  const weekend = getWeekend()
+  const region   = profile?.region ?? null
+  const now      = new Date()
+  const todayStr = now.toISOString().slice(0, 10)
+  const plus10   = new Date(now); plus10.setDate(now.getDate() + 10)
+  const plus10Str = plus10.toISOString().slice(0, 10)
 
-  // ── Mercati questo weekend (next_date = sab o dom) ───────────────
+  // ── Mercati ricorrenti nei prossimi 10 giorni ────────────────────
   let markets: Market[] = []
   try {
     let q = supabase
       .from('markets')
       .select(MARKET_COLS)
-      .in('next_date', [weekend.sat, weekend.sun])
+      .gte('next_date', todayStr)
+      .lte('next_date', plus10Str)
       .order('is_featured', { ascending: false })
+      .order('next_date',   { ascending: true })
       .order('avg_rating',  { ascending: false })
     if (region) q = q.eq('region', region)
     const { data } = await q.limit(9)
     markets = (data ?? []) as unknown as Market[]
   } catch {}
 
-  const hasWeekend = markets.length > 0
+  // ── Mercatini una-tantum nei prossimi 10 giorni ──────────────────
+  let onetimeEvents: MarketEvent[] = []
+  try {
+    let q = supabase
+      .from('market_events')
+      .select(EVENT_COLS)
+      .eq('is_recurring', false)
+      .gte('start_date', todayStr)
+      .lte('start_date', plus10Str)
+      .order('is_featured', { ascending: false })
+      .order('start_date',  { ascending: true })
+    if (region) q = q.eq('region', region)
+    const { data } = await q.limit(6)
+    onetimeEvents = (data ?? []) as MarketEvent[]
+  } catch {}
 
-  // ── Fallback: prossimi 14 giorni ─────────────────────────────────
-  let upcomingMarkets: Market[] = []
-  if (!hasWeekend) {
-    try {
-      const now    = new Date()
-      const plus14 = new Date(now)
-      plus14.setDate(now.getDate() + 14)
-      let q = supabase
-        .from('markets')
-        .select(MARKET_COLS)
-        .gte('next_date', now.toISOString().slice(0, 10))
-        .lte('next_date', plus14.toISOString().slice(0, 10))
-        .order('is_featured', { ascending: false })
-        .order('next_date',   { ascending: true })
-      if (region) q = q.eq('region', region)
-      const { data } = await q.limit(6)
-      upcomingMarkets = (data ?? []) as unknown as Market[]
-    } catch {}
-  }
+  // ── Combina e ordina ─────────────────────────────────────────────
+  type CombinedItem =
+    | { kind: 'market'; item: Market;      date: string; score: number }
+    | { kind: 'event';  item: MarketEvent; date: string; score: number }
+
+  const combined: CombinedItem[] = [
+    ...markets.map(m => ({
+      kind:  'market' as const,
+      item:  m,
+      date:  m.next_date ?? '9999-99-99',
+      score: featuredScore(m) + (m.is_featured ? 100 : 0),
+    })),
+    ...onetimeEvents.map(e => ({
+      kind:  'event' as const,
+      item:  e,
+      date:  e.start_date,
+      score: (e.is_featured ? 100 : 0),
+    })),
+  ].sort((a, b) => {
+    const dateDiff = a.date.localeCompare(b.date)
+    if (dateDiff !== 0) return dateDiff
+    return b.score - a.score
+  })
 
   // ── Stats ────────────────────────────────────────────────────────
   let totalMarkets: number | null = null
@@ -113,33 +158,27 @@ export default async function HomePage() {
     shops = (data ?? []) as Shop[]
   } catch {}
 
-  // ── Ordina per score ─────────────────────────────────────────────
-  const rawMarkets = hasWeekend ? markets : upcomingMarkets
-  const anyReviews = rawMarkets.some(m => (m.review_count ?? 0) > 0)
-  const displayMarkets = anyReviews
-    ? [...rawMarkets].sort((a, b) => {
-        const diff = featuredScore(b) - featuredScore(a)
-        if (diff !== 0) return diff
-        return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
-      })
-    : rawMarkets
-
-  // ── Meteo: solo entro 7 giorni ────────────────────────────────────
-  const featuredMarket = displayMarkets[0] ?? null
+  // ── Meteo per il primo market ────────────────────────────────────
+  const topMarket = combined.find(c => c.kind === 'market')?.item as Market | undefined
   let featuredWeather: WeatherDay[] = []
-  if (featuredMarket?.next_date) {
+  if (topMarket?.next_date) {
     try {
       const daysUntil = Math.floor(
-        (new Date(featuredMarket.next_date + 'T12:00:00').getTime() - Date.now()) / 86400000
+        (new Date(topMarket.next_date + 'T12:00:00').getTime() - Date.now()) / 86400000
       )
       if (daysUntil >= 0 && daysUntil <= 7) {
         featuredWeather = await Promise.race([
-          fetchWeatherForDates(featuredMarket.city, [featuredMarket.next_date]),
+          fetchWeatherForDates(topMarket.city, [topMarket.next_date]),
           new Promise<[]>(resolve => setTimeout(() => resolve([]), 5000)),
         ])
       }
     } catch { featuredWeather = [] }
   }
+
+  const earliestDate = combined[0]?.date ?? null
+  const { eyebrow, heading } = sectionLabel(earliestDate)
+  const firstItem = combined[0] ?? null
+  const rest      = combined.slice(1)
 
   return (
     <>
@@ -149,15 +188,15 @@ export default async function HomePage() {
         initialRegion={region}
       />
 
-      {/* ── Questo weekend ─────────────────────────────────────────── */}
+      {/* ── Prossimi appuntamenti ──────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 pt-10 pb-4">
         <div className="flex items-end justify-between mb-6">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sienna mb-1">
-              {hasWeekend ? 'Questo weekend' : 'Prossimi appuntamenti'}
+              {eyebrow}
             </p>
-            <h2 className="font-serif font-bold text-espresso text-[20px] leading-tight">
-              {hasWeekend ? weekend.label : 'Nei prossimi 14 giorni'}
+            <h2 className="font-serif font-bold text-espresso text-[20px] leading-tight capitalize">
+              {heading}
             </h2>
             {region && (
               <p className="text-[12px] text-muted mt-0.5">in {region}</p>
@@ -171,14 +210,23 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {displayMarkets.length > 0 ? (
+        {firstItem ? (
           <div className="space-y-4">
-            <FeaturedMarketCard market={displayMarkets[0]} weather={featuredWeather} />
-            {displayMarkets.length > 1 && (
+            {/* Primo in evidenza */}
+            {firstItem.kind === 'market' ? (
+              <FeaturedMarketCard market={firstItem.item} weather={featuredWeather} />
+            ) : (
+              <EventCard event={firstItem.item} todayStr={todayStr} />
+            )}
+
+            {/* Griglia degli altri */}
+            {rest.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {displayMarkets.slice(1).map(m => (
-                  <MarketCard key={m.id} market={m} />
-                ))}
+                {rest.map(c =>
+                  c.kind === 'market'
+                    ? <MarketCard  key={c.item.id} market={c.item} />
+                    : <EventCard   key={c.item.id} event={c.item}  todayStr={todayStr} />
+                )}
               </div>
             )}
           </div>
@@ -186,12 +234,12 @@ export default async function HomePage() {
           <div className="text-center py-14 border border-dashed border-border/70 rounded-2xl bg-white/50">
             <RefreshCw size={24} className="text-muted/40 mx-auto mb-3" />
             <p className="font-serif text-[16px] font-semibold text-espresso mb-1">
-              Nessun mercato in programma
+              Nessun appuntamento in programma
             </p>
             <p className="text-muted text-[12px] mb-4">
               {region
-                ? `Non ci sono mercati in ${region} questo weekend.`
-                : 'Nessun mercato trovato per questo weekend.'}
+                ? `Non ci sono mercati o eventi in ${region} nei prossimi 10 giorni.`
+                : 'Nessun mercato trovato nei prossimi 10 giorni.'}
             </p>
             <Link href="/mercatini" className="text-[12px] font-semibold text-sienna hover:underline">
               Esplora tutto il calendario →
@@ -204,9 +252,9 @@ export default async function HomePage() {
       <section className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center gap-8 sm:gap-16 py-5 bg-white border border-border rounded-2xl">
           {[
-            { n: totalMarkets ?? 67, label: 'mercati ricorrenti' },
-            { n: 20,                 label: 'regioni coperte'    },
-            { n: '100%',             label: 'ad ingresso gratuito' },
+            { n: totalMarkets ?? 200, label: 'mercati ricorrenti'   },
+            { n: 20,                  label: 'regioni coperte'     },
+            { n: 'Gratis',            label: 'per gli utenti'      },
           ].map(({ n, label }) => (
             <div key={label} className="text-center">
               <p className="font-serif font-bold text-espresso text-[26px] leading-none">{n}</p>
