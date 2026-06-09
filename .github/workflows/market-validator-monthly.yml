@@ -2,31 +2,45 @@ name: Validazione Mensile Mercati
 
 on:
   schedule:
-    - cron: '0 5 1 * *'   # 1° di ogni mese alle 07:00 ora di Roma
-  workflow_dispatch:
+    - cron: '0 5 1 * *'   # 1° di ogni mese alle 07:00 ora di Roma (05:00 UTC)
+  workflow_dispatch:       # avvio manuale da GitHub se necessario
 
 jobs:
   validate:
-    name: Aggiorna e valida tutti i mercati
+    name: Pulisci, valida e arricchisci tutti i mercati
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
     steps:
       - uses: actions/checkout@v4
 
+      # Node 20 + cache npm (usa il package-lock.json del progetto)
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Installa dipendenze
-        run: npm install --no-save @supabase/supabase-js @anthropic-ai/sdk
+        run: npm ci --ignore-scripts
 
+      # Aggiorna next_date di tutti i mercati con cadenza ricorrente
       - name: Refresh date prossime occorrenze
         run: |
-          curl -sf -X POST https://vintagery.it/api/refresh-recurring-dates \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" || true
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            -X POST "$SITE_URL/api/refresh-recurring-dates" \
+            -H "Authorization: Bearer $CRON_SECRET") || STATUS=0
+          echo "refresh-recurring-dates → HTTP $STATUS"
+        env:
+          SITE_URL:    ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
-      - name: Valida e aggiorna mercati
+      # Script principale:
+      # 1. Pulisce telefoni e "verificare su X" da tutti i campi testo
+      # 2. Arricchisce con Claude i mercati con dati mancanti
+      # 3. Aggiorna last_validated_at (nuovi mercati aggiunti manualmente
+      #    hanno last_validated_at=null e vengono processati per primi)
+      # 4. Stampa riepilogo con mercati da verificare manualmente
+      - name: Valida, pulisce e arricchisce tutti i mercati
         run: node scripts/validate-markets.mjs
         env:
           SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
