@@ -158,8 +158,14 @@ async function TuttiIContenuti({ searchParams }: Props) {
       {allMarkets.length > 0 && (
         <section>
           {regionsWithMarkets.map(region => {
+            const todaySortStr = new Date().toISOString().slice(0, 10)
             const sorted = [...marketsByRegion[region]].sort((a, b) => {
               if (a.is_featured !== b.is_featured) return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
+              // Mercati con next_date futura prima, quelli con data passata/assente in fondo
+              const aFuture = a.next_date && a.next_date >= todaySortStr
+              const bFuture = b.next_date && b.next_date >= todaySortStr
+              if (aFuture && !bFuture) return -1
+              if (!aFuture && bFuture) return  1
               const da = a.next_date ?? '9999-99-99'
               const db = b.next_date ?? '9999-99-99'
               return da.localeCompare(db)

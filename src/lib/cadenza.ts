@@ -15,7 +15,7 @@ function parseWeekday(s: string): number | null {
   return null
 }
 
-function nextWeekdayFrom(from: Date, weekday: number): Date {
+export function nextWeekdayFrom(from: Date, weekday: number): Date {
   const d = new Date(from)
   d.setHours(12, 0, 0, 0)
   const diff = ((weekday - d.getDay()) + 7) % 7
@@ -99,4 +99,75 @@ export function computeNextDate(scheduleOrDescription: string | null, today: Dat
   }
 
   return null
+}
+
+// ── resolveDisplayDate ────────────────────────────────────────────────────────
+
+export interface DisplayDate {
+  date:        Date | null
+  isComputed:  boolean   // true = ricalcolata client-side (DB non ancora aggiornato)
+  isOffSeason: boolean   // true = active_months esclude il mese corrente
+}
+
+/**
+ * Restituisce sempre una data futura da mostrare in UI.
+ * Se next_date è nel passato, la ricalcola dalla cadenza:
+ *   - settimanale → +7 giorni dall'ultimo next_date (stesso giorno della settimana)
+ *   - mensile/altro → computeNextDate da schedule_notes
+ * Se non è possibile calcolarla, date = null.
+ */
+export function resolveDisplayDate(market: {
+  next_date?:      string | null
+  schedule_notes?: string | null
+  frequency?:      string | null
+  active_months?:  number[] | null
+}): DisplayDate {
+  const today = new Date()
+  today.setHours(12, 0, 0, 0)
+  const todayStr = localDateStr(today)
+
+  // Fuori stagione
+  const currentMonth = today.getMonth() + 1
+  if (market.active_months?.length && !market.active_months.includes(currentMonth)) {
+    return { date: null, isComputed: false, isOffSeason: true }
+  }
+
+  // next_date già futura o oggi → usa direttamente
+  if (market.next_date && market.next_date >= todayStr) {
+    return {
+      date:        new Date(market.next_date + 'T12:00:00'),
+      isComputed:  false,
+      isOffSeason: false,
+    }
+  }
+
+  // next_date passata o assente → ricalcola
+
+  const freq = market.frequency?.toLowerCase()
+
+  // Settimanale: mantieni lo stesso giorno della settimana, avanza di 7
+  if (freq === 'settimanale' && market.next_date) {
+    const base    = new Date(market.next_date + 'T12:00:00')
+    const weekday = base.getDay()
+    return {
+      date:        nextWeekdayFrom(today, weekday),
+      isComputed:  true,
+      isOffSeason: false,
+    }
+  }
+
+  // Mensile / altro: usa computeNextDate da schedule_notes
+  if (market.schedule_notes) {
+    const nextStr = computeNextDate(market.schedule_notes, today)
+    if (nextStr) {
+      return {
+        date:        new Date(nextStr + 'T12:00:00'),
+        isComputed:  true,
+        isOffSeason: false,
+      }
+    }
+  }
+
+  // Non calcolabile
+  return { date: null, isComputed: false, isOffSeason: false }
 }

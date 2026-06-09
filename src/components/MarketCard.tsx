@@ -5,6 +5,7 @@ import { MapPin, Clock, Ticket, RefreshCw, Lightbulb, ArrowRight, BadgeCheck } f
 import type { Market } from '@/types'
 import SaveButton from './SaveButton'
 import { REGION_CONFIG, AREA_PATTERNS, DEFAULT_CONFIG } from '@/lib/regions-config'
+import { resolveDisplayDate } from '@/lib/cadenza'
 
 const FREQ_LABEL: Record<string, string> = {
   settimanale: 'Ogni settimana',
@@ -31,7 +32,8 @@ export default function MarketCard({ market, compact = false }: Props) {
   const cats     = (market.categories ?? []).slice(0, 4)
   const schedule = market.schedule_notes ?? (market.frequency ? FREQ_LABEL[market.frequency] : null)
   const desc     = market.description?.split('\n')[0]?.slice(0, 200) ?? null
-  const d        = market.next_date ? new Date(market.next_date + 'T12:00:00') : null
+
+  const { date: d, isComputed, isOffSeason } = resolveDisplayDate(market)
 
   return (
     <Link
@@ -84,21 +86,27 @@ export default function MarketCard({ market, compact = false }: Props) {
 
       <div className="px-5 pt-4 pb-5">
 
-        {d && (
+        {isOffSeason ? (
+          <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-[0.14em] text-muted/70 bg-muted/8 border border-border px-2.5 py-1 rounded-full mb-2.5">
+            Fuori stagione
+          </span>
+        ) : d ? (
           <div className="flex items-center gap-2.5 mb-2.5">
-            <span className="font-serif font-bold leading-none" style={{ color: accent, fontSize: '22px' }}>
+            <span className="font-serif font-bold leading-none" style={{ color: isComputed ? `${accent}99` : accent, fontSize: '22px' }}>
               {d.getDate()}
             </span>
             <div>
-              <p className="text-[9.5px] font-bold uppercase tracking-[0.16em] leading-none" style={{ color: accent }}>
+              <p className="text-[9.5px] font-bold uppercase tracking-[0.16em] leading-none"
+                style={{ color: isComputed ? `${accent}99` : accent }}>
                 {DAYS_LONG[d.getDay()].slice(0, 3)}
               </p>
               <p className="text-[9px] font-medium uppercase tracking-[0.1em] text-muted mt-0.5">
                 {MONTHS[d.getMonth()]} {d.getFullYear()}
+                {isComputed && <span className="ml-1 text-muted/50">~</span>}
               </p>
             </div>
           </div>
-        )}
+        ) : null}
 
         <h3 className={`font-serif font-bold text-espresso leading-[1.2] mb-3 group-hover:text-sienna transition-colors duration-150 ${
           compact ? 'text-[15px] line-clamp-2' : 'text-[18px]'

@@ -5,6 +5,7 @@ import type { Market } from '@/types'
 import type { WeatherDay } from '@/lib/weather'
 import { wmoInfo } from '@/lib/weather'
 import AddToCalendar from './AddToCalendar'
+import { resolveDisplayDate, localDateStr } from '@/lib/cadenza'
 
 const MONTHS_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
 const MONTHS_LONG  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre']
@@ -33,7 +34,9 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
   const isFree   = /gratuito|gratis|free/i.test(market.price_info ?? '')
   const typeLabel = (market.categories?.[0] ?? 'Mercato ricorrente')
 
-  const d = market.next_date ? new Date(market.next_date + 'T12:00:00') : null
+  const { date: d, isComputed, isOffSeason } = resolveDisplayDate(market)
+  // Per AddToCalendar e meteo usiamo la data risolta (non solo quella del DB)
+  const resolvedDateStr = d ? localDateStr(d) : market.next_date ?? null
 
   const mapsUrl = market.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(market.address + ', ' + market.city)}`
@@ -76,11 +79,16 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
               )}
             </div>
 
-            {d && (
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 mb-2">
+            {isOffSeason ? (
+              <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-[0.14em] text-white/50 bg-white/10 border border-white/20 px-2.5 py-0.5 rounded-full mb-2">
+                Fuori stagione
+              </span>
+            ) : d ? (
+              <p className={`text-[11px] font-bold uppercase tracking-[0.18em] mb-2 ${isComputed ? 'text-white/40' : 'text-white/55'}`}>
                 {DAYS_LONG[d.getDay()]} {d.getDate()} {MONTHS_LONG[d.getMonth()]}
+                {isComputed && <span className="ml-1 text-white/30 normal-case tracking-normal font-normal">~</span>}
               </p>
-            )}
+            ) : null}
 
             <h2 className="font-serif font-bold text-white leading-[1.1] mb-3"
               style={{ fontSize: 'clamp(1.3rem, 3.5vw, 2rem)' }}>
@@ -188,11 +196,11 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
           Scopri di più <ArrowRight size={13} />
         </Link>
         <div className="flex items-center gap-2 ml-auto">
-          {market.next_date && (
+          {resolvedDateStr && (
             <AddToCalendar event={{
               id:          market.id,
               name:        market.name,
-              start_date:  market.next_date,
+              start_date:  resolvedDateStr,
               start_time:  market.start_time ?? undefined,
               end_time:    market.end_time ?? undefined,
               address:     market.address ?? undefined,
