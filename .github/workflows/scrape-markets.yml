@@ -1,0 +1,45 @@
+name: Scrape Mercatini (capoluoghi)
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'   # 1° del mese alle 03:00 UTC
+    - cron: '0 3 18 * *'  # 18 del mese alle 03:00 UTC
+  workflow_dispatch:       # avvio manuale da GitHub
+
+jobs:
+  scrape:
+    name: Scrapa 107 capoluoghi e importa in Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installa dipendenze Python
+        run: pip install httpx -q
+
+      - name: Scrape capoluoghi
+        run: python3 scripts/scrape-comuni.py
+        env:
+          GROQ_API_KEY:              ${{ secrets.GROQ_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL:  ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Installa dipendenze Node
+        run: npm ci --ignore-scripts
+
+      - name: Import in Supabase con AI dedup
+        run: node scripts/import-comuni-markets.mjs
+        env:
+          GROQ_API_KEY:              ${{ secrets.GROQ_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL:  ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
