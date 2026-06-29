@@ -4,12 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
-webPush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-)
-
 const MONTHS_IT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']
 
 function getWeekendRange(): { satStr: string; sunStr: string } {
@@ -30,6 +24,12 @@ export async function GET(req: NextRequest) {
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  webPush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
+  )
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
