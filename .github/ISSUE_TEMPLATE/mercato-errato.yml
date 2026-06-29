@@ -1,0 +1,53 @@
+name: Dati mercato errati
+description: Segnala informazioni incorrette su un mercato esistente
+labels: ["data-correction", "triage"]
+body:
+  - type: input
+    id: market-url
+    attributes:
+      label: URL mercato
+      placeholder: "https://vintagery.it/mercatini/uuid-del-mercato"
+    validations:
+      required: true
+
+  - type: input
+    id: market-name
+    attributes:
+      label: Nome mercato
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: fields
+    attributes:
+      label: Campi errati
+      options:
+        - label: Data / prossima occorrenza
+        - label: Orario
+        - label: Indirizzo
+        - label: Cadenza (settimanale/mensile/...)
+        - label: Descrizione
+        - label: Sito web
+        - label: Prezzo ingresso
+        - label: Categoria
+        - label: Altro
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Dato attuale (errato)
+    validations:
+      required: true
+
+  - type: textarea
+    id: correct
+    attributes:
+      label: Dato corretto
+    validations:
+      required: true
+
+  - type: input
+    id: source
+    attributes:
+      label: Fonte
+      placeholder: "https://... (sito ufficiale, Facebook, ecc.)"

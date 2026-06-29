@@ -1,0 +1,49 @@
+name: Health Check Siti Web — Quindicinale
+
+on:
+  schedule:
+    - cron: '0 5 1,15 * *'  # 1° e 15 del mese alle 07:00 ora di Roma (05:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    name: Verifica raggiungibilità siti web mercati
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Installa dipendenze
+        run: npm ci --ignore-scripts
+
+      - name: Esegui health check
+        run: node scripts/website-health-check.mjs > /tmp/health-report.md
+        env:
+          SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Chiudi health check precedente
+        run: |
+          OLD=$(gh issue list --label "health-check" --state open --json number --jq '.[0].number')
+          if [ -n "$OLD" ]; then
+            gh issue close "$OLD" --comment "Sostituito dal controllo più recente."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Crea Issue con risultati
+        run: |
+          gh issue create \
+            --title "🌐 Health Check Siti Web — $(date +'%-d %B %Y')" \
+            --body-file /tmp/health-report.md \
+            --label "health-check,automated"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

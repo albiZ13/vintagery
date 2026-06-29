@@ -1,0 +1,49 @@
+name: Report Qualità Dati — Settimanale
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # ogni lunedì alle 08:00 ora di Roma (06:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: Genera e posta report qualità dati
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Installa dipendenze
+        run: npm ci --ignore-scripts
+
+      - name: Genera report
+        run: node scripts/data-quality-report.mjs > /tmp/quality-report.md
+        env:
+          SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Chiudi report precedente
+        run: |
+          OLD=$(gh issue list --label "data-quality" --state open --json number --jq '.[0].number')
+          if [ -n "$OLD" ]; then
+            gh issue close "$OLD" --comment "Sostituito dal report settimanale più recente."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Crea Issue con report
+        run: |
+          gh issue create \
+            --title "📊 Report Qualità Dati — $(date +'%-d %B %Y')" \
+            --body-file /tmp/quality-report.md \
+            --label "data-quality,automated"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

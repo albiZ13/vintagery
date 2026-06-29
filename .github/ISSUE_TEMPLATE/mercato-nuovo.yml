@@ -1,0 +1,75 @@
+name: Proponi un nuovo mercato
+description: Segnala un mercato vintage non ancora su Vintagery
+labels: ["new-market", "triage"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Nome mercato
+    validations:
+      required: true
+
+  - type: input
+    id: city
+    attributes:
+      label: Città
+    validations:
+      required: true
+
+  - type: input
+    id: region
+    attributes:
+      label: Regione
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Cadenza
+      options:
+        - Settimanale
+        - Mensile
+        - Trimestrale
+        - Annuale
+        - Occasionale
+    validations:
+      required: true
+
+  - type: input
+    id: schedule
+    attributes:
+      label: Quando si tiene
+      placeholder: "es. Ogni prima domenica del mese, ogni sabato"
+    validations:
+      required: true
+
+  - type: input
+    id: address
+    attributes:
+      label: Indirizzo / luogo
+      placeholder: "Via Roma 1, piazza del centro, ecc."
+
+  - type: input
+    id: website
+    attributes:
+      label: Sito web o pagina Facebook
+      placeholder: "https://..."
+
+  - type: checkboxes
+    id: categories
+    attributes:
+      label: Categorie
+      options:
+        - label: Abbigliamento
+        - label: Oggettistica
+        - label: Vinili / musica
+        - label: Libri
+        - label: Antiquariato
+        - label: Artigianato
+        - label: Modernariato
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Note aggiuntive

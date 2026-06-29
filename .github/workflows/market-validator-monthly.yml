@@ -3,18 +3,19 @@ name: Validazione Mensile Mercati
 on:
   schedule:
     - cron: '0 5 1 * *'   # 1° di ogni mese alle 07:00 ora di Roma (05:00 UTC)
-  workflow_dispatch:       # avvio manuale da GitHub se necessario
+  workflow_dispatch:
 
 jobs:
   validate:
     name: Pulisci, valida e arricchisci tutti i mercati
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      issues: write
 
     steps:
       - uses: actions/checkout@v4
 
-      # Node 20 + cache npm (usa il package-lock.json del progetto)
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -23,7 +24,6 @@ jobs:
       - name: Installa dipendenze
         run: npm ci --ignore-scripts
 
-      # Aggiorna next_date di tutti i mercati con cadenza ricorrente
       - name: Refresh date prossime occorrenze
         run: |
           STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
@@ -34,15 +34,24 @@ jobs:
           SITE_URL:    ${{ secrets.NEXT_PUBLIC_SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
-      # Script principale:
-      # 1. Pulisce telefoni e "verificare su X" da tutti i campi testo
-      # 2. Arricchisce con Claude i mercati con dati mancanti
-      # 3. Aggiorna last_validated_at (nuovi mercati aggiunti manualmente
-      #    hanno last_validated_at=null e vengono processati per primi)
-      # 4. Stampa riepilogo con mercati da verificare manualmente
       - name: Valida, pulisce e arricchisce tutti i mercati
-        run: node scripts/validate-markets.mjs
+        run: node scripts/validate-markets.mjs 2>&1 | tee /tmp/validate-output.txt
         env:
           SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Genera report qualità post-validazione
+        run: node scripts/data-quality-report.mjs > /tmp/quality-report.md
+        env:
+          SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Crea Issue con risultati validazione
+        run: |
+          gh issue create \
+            --title "🔍 Validazione Mensile — $(date +'%B %Y')" \
+            --body-file /tmp/quality-report.md \
+            --label "monthly-validation,automated"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
