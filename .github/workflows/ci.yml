@@ -25,7 +25,7 @@ jobs:
           cache: 'npm'
 
       - name: Installa dipendenze
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
       - name: TypeScript
         run: npx tsc --noEmit
@@ -96,7 +96,7 @@ jobs:
           cache: 'npm'
 
       - name: Installa dipendenze
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
       - name: Build Next.js
         run: npx next build
