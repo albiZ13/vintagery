@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { weeklyDigestEmail } from '@/lib/email/templates'
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://vintagery.it'
@@ -16,9 +16,8 @@ function getWeekendRange(): { satStr: string; sunStr: string } {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchMarketsForArea(
-  supabase: any,
+  supabase: SupabaseClient,
   satStr: string,
   sunStr: string,
   opts: { city?: string | null; region?: string | null },
