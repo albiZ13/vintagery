@@ -16,8 +16,9 @@ function getWeekendRange(): { satStr: string; sunStr: string } {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchMarketsForArea(
-  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>,
+  supabase: any,
   satStr: string,
   sunStr: string,
   opts: { city?: string | null; region?: string | null },
