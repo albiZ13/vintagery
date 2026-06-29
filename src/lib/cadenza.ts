@@ -1,3 +1,10 @@
+export const FREQ_LABEL: Record<string, string> = {
+  settimanale: 'Ogni settimana',
+  mensile:     'Ogni mese',
+  occasionale: 'Occasionale',
+  annuale:     'Annuale',
+}
+
 const WEEKDAY_MAP: Record<string, number> = {
   'domenica': 0, 'lunedi': 1, 'martedi': 2, 'mercoledi': 3,
   'giovedi': 4, 'venerdi': 5, 'sabato': 6,

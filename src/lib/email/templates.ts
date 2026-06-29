@@ -123,6 +123,136 @@ export function newMarketEmail(opts: {
   }
 }
 
+export function shopApprovedEmail(opts: { shopName: string; shopId: string }) {
+  const content = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1c2e4a;">Il tuo negozio è stato approvato!</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">
+      <strong>${opts.shopName}</strong> è ora verificato su Vintagery. Il tuo profilo è visibile a tutti gli utenti e hai accesso gratuito per 90 giorni.
+    </p>
+    <a href="${BASE_URL}/negozi/${opts.shopId}"
+       style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;font-family:system-ui,sans-serif;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;">
+      Vedi il tuo profilo →
+    </a>
+  `
+  return { subject: `${opts.shopName} è stato approvato su Vintagery`, html: wrapper(content) }
+}
+
+export function shopRejectedEmail(opts: { shopName: string; reason?: string }) {
+  const content = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1c2e4a;">Aggiornamento sulla tua richiesta</h1>
+    <p style="margin:0 0 16px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">
+      La richiesta per <strong>${opts.shopName}</strong> non è stata approvata.
+    </p>
+    ${opts.reason ? `<p style="margin:0 0 24px;font-size:13px;color:#8b8074;font-family:system-ui,sans-serif;">Motivo: ${opts.reason}</p>` : ''}
+    <a href="${BASE_URL}/negozi/nuovo"
+       style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;font-family:system-ui,sans-serif;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;">
+      Riprova →
+    </a>
+  `
+  return { subject: `Aggiornamento su ${opts.shopName}`, html: wrapper(content) }
+}
+
+export function proposalApprovedEmail(opts: { proposalName: string; city: string }) {
+  const content = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1c2e4a;">Il tuo evento è live!</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">
+      <strong>${opts.proposalName}</strong> a ${opts.city} è stato approvato ed è ora visibile su Vintagery.
+    </p>
+    <a href="${BASE_URL}/mercatini"
+       style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;font-family:system-ui,sans-serif;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;">
+      Vedi gli eventi →
+    </a>
+  `
+  return { subject: `Il tuo evento "${opts.proposalName}" è online`, html: wrapper(content) }
+}
+
+export function proposalRejectedEmail(opts: { proposalName: string; reason?: string }) {
+  const content = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1c2e4a;">Aggiornamento sulla tua proposta</h1>
+    <p style="margin:0 0 16px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">
+      La proposta <strong>${opts.proposalName}</strong> non è stata approvata.
+    </p>
+    ${opts.reason ? `<p style="margin:0 0 24px;font-size:13px;color:#8b8074;font-family:system-ui,sans-serif;">Motivo: ${opts.reason}</p>` : ''}
+    <a href="${BASE_URL}/proponi"
+       style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;font-family:system-ui,sans-serif;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;">
+      Invia una nuova proposta →
+    </a>
+  `
+  return { subject: `Aggiornamento sulla proposta "${opts.proposalName}"`, html: wrapper(content) }
+}
+
+export function weeklyDigestEmail(opts: {
+  firstName: string | null
+  region: string | null
+  city: string | null
+  markets: { id: string; name: string; city: string; next_date: string; image_url: string | null }[]
+  shops: { id: string; name: string; city: string; avg_rating: number | null }[]
+  unsubUrl: string
+}) {
+  const greeting = opts.firstName ? `Ciao ${opts.firstName},` : 'Ciao,'
+  const location = opts.city ?? opts.region ?? 'tutta Italia'
+
+  const marketRows = opts.markets.map(m => {
+    const d = new Date(m.next_date + 'T12:00:00')
+    const label = d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
+    return `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0ece6;">
+          <a href="${BASE_URL}/mercatini/${m.id}"
+             style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1c2e4a;text-decoration:none;">
+            ${m.name}
+          </a><br/>
+          <span style="font-family:system-ui,sans-serif;font-size:12px;color:#8b8074;">
+            📍 ${m.city} &nbsp;·&nbsp; 🗓 ${label}
+          </span>
+        </td>
+      </tr>
+    `
+  }).join('')
+
+  const content = `
+    <p style="margin:0 0 4px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">${greeting}</p>
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1c2e4a;">Mercatini vintage questo weekend</h1>
+    <p style="margin:0 0 24px;font-size:13px;color:#8b8074;font-family:system-ui,sans-serif;">
+      ${opts.markets.length} appuntament${opts.markets.length === 1 ? 'o' : 'i'} selezionat${opts.markets.length === 1 ? 'o' : 'i'} per te in ${location}
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0">${marketRows}</table>
+    <div style="margin-top:28px;">
+      <a href="${BASE_URL}/mercatini"
+         style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;font-family:system-ui,sans-serif;font-size:13px;font-weight:600;padding:11px 26px;border-radius:8px;">
+        Vedi tutti →
+      </a>
+    </div>
+  `
+  return {
+    subject: `Questo weekend: ${opts.markets.length} mercatin${opts.markets.length === 1 ? 'o' : 'i'} vintage${opts.region ? ` in ${opts.region}` : ''}`,
+    html: wrapper(content, opts.unsubUrl),
+  }
+}
+
+export function shopPostEmail(opts: {
+  firstName: string
+  shopName: string
+  shopId: string
+  caption: string | null
+  imageUrl: string | null
+}) {
+  const content = `
+    <p style="margin:0 0 4px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">Ciao ${opts.firstName},</p>
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1c2e4a;">Nuovo post da ${opts.shopName}</h1>
+    ${opts.imageUrl ? `<img src="${opts.imageUrl}" alt="" style="width:100%;border-radius:8px;margin-bottom:16px;display:block;" />` : ''}
+    ${opts.caption ? `<p style="margin:0 0 24px;font-size:14px;color:#4a4540;font-family:system-ui,sans-serif;">${opts.caption}</p>` : ''}
+    <a href="${BASE_URL}/negozi/${opts.shopId}"
+       style="display:inline-block;background:#1c2e4a;color:#c9a84c;text-decoration:none;font-family:system-ui,sans-serif;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;">
+      Vedi il negozio →
+    </a>
+  `
+  return {
+    subject: `Nuovo post da ${opts.shopName}`,
+    html: wrapper(content),
+  }
+}
+
 const MONTHS_IT = [
   'Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
   'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre',
