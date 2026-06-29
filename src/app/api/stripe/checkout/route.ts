@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-05-27.dahlia' })
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-06-24.dahlia' })
   const body: { shop_id?: string; plan?: string; event?: Record<string, string> } = await req.json()
   const { shop_id, plan, event } = body
   if (!shop_id || !plan) return NextResponse.json({ error: 'missing fields' }, { status: 400 })
