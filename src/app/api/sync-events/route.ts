@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Anthropic from '@anthropic-ai/sdk'
 import { rateLimit, getIp } from '@/lib/rate-limit'
@@ -33,7 +33,12 @@ export async function POST(req: NextRequest) {
 
   if (!isCron) {
     // Fallback: verifica che l'utente sia admin
-    const routeClient = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const routeClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } },
+    )
     const { data: { user } } = await routeClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { data: profile } = await routeClient
