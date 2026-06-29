@@ -1,0 +1,50 @@
+name: Cron Jobs
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # refresh-recurring-dates — ogni giorno 7:00 IT
+    - cron: '0 7 * * *'   # notify-events          — ogni giorno 9:00 IT
+    - cron: '0 3 * * 1'   # update-shop-badges     — ogni lunedì 5:00 IT
+    - cron: '0 8 1 * *'   # send-monthly-digest    — 1° del mese 10:00 IT
+  workflow_dispatch:
+
+jobs:
+  refresh-recurring-dates:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 5 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh recurring dates
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://vintagery.it/api/refresh-recurring-dates
+
+  notify-events:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 7 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify events
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://vintagery.it/api/notify-events
+
+  update-shop-badges:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * 1'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update shop badges
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://vintagery.it/api/cron/update-shop-badges
+
+  send-monthly-digest:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 8 1 * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send monthly digest
+        run: |
+          curl -sf -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://vintagery.it/api/send-monthly-digest

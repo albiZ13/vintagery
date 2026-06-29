@@ -1,0 +1,27 @@
+name: Refresh Date Prossime Occorrenze
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'   # ogni lunedì alle 06:00 ora di Roma (04:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    name: Aggiorna next_date mercati ricorrenti
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Chiama API refresh-recurring-dates
+        run: |
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            -X POST "$SITE_URL/api/refresh-recurring-dates" \
+            -H "Authorization: Bearer $CRON_SECRET") || STATUS=0
+          echo "HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Attenzione: risposta HTTP $STATUS"
+            exit 1
+          fi
+        env:
+          SITE_URL:    ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

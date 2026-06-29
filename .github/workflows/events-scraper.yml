@@ -1,0 +1,30 @@
+name: Scraper Eventi Itineranti
+
+on:
+  schedule:
+    - cron: '0 6 1,20 * *'  # 1° e 20° del mese alle 08:00 ora di Roma
+  workflow_dispatch:         # avvio manuale da GitHub
+
+jobs:
+  scrape:
+    name: Trova e inserisce eventi itineranti una-tantum
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Installa dipendenze
+        run: npm ci --ignore-scripts
+
+      - name: Scraping eventi (Vinokilo, FPV, Qlhype, Remira, VGMT, East Market speciali)
+        run: node scripts/scrape-events.mjs
+        env:
+          SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
