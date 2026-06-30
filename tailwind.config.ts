@@ -60,6 +60,14 @@ const config: Config = {
         'card-hover': '0 4px 16px rgba(30,18,8,.12), 0 1px 4px rgba(30,18,8,.08)',
         soft:   '0 2px 8px rgba(30,18,8,.06)',
       },
+      keyframes: {
+        'marquee-left':  { from: { transform: 'translateX(0)' },    to: { transform: 'translateX(-50%)' } },
+        'marquee-right': { from: { transform: 'translateX(-50%)' }, to: { transform: 'translateX(0)' } },
+      },
+      animation: {
+        'marquee-left':  'marquee-left 38s linear infinite',
+        'marquee-right': 'marquee-right 42s linear infinite',
+      },
     },
   },
   plugins: [],

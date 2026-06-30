@@ -8,6 +8,8 @@ import EventCard from '@/components/EventCard'
 import FeaturedMarketCard from '@/components/FeaturedMarketCard'
 import ShopCard from '@/components/ShopCard'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
+import HomeWeeklyMap from '@/components/sections/home/HomeWeeklyMap'
+import HomePushBanner from '@/components/sections/home/HomePushBanner'
 import { fetchWeatherForDates, type WeatherDay } from '@/lib/weather'
 import type { Market, MarketEvent, Shop } from '@/types'
 
@@ -145,6 +147,22 @@ export default async function HomePage() {
     totalMarkets = count
   } catch {}
 
+  // ── Mappa settimanale: un mercato per regione ─────────────────────
+  let regionMarkets: Record<string, Market | null> = {}
+  try {
+    const { data } = await supabase
+      .from('markets')
+      .select(MARKET_COLS)
+      .gte('next_date', todayStr)
+      .order('region')
+      .order('next_date', { ascending: true })
+    const byRegion: Record<string, Market> = {}
+    ;((data ?? []) as unknown as Market[]).forEach(m => {
+      if (!byRegion[m.region]) byRegion[m.region] = m
+    })
+    regionMarkets = byRegion
+  } catch {}
+
   // ── Negozi ───────────────────────────────────────────────────────
   let shops: Shop[] = []
   try {
@@ -187,6 +205,8 @@ export default async function HomePage() {
         displayName={profile?.first_name || profile?.username}
         initialRegion={region}
       />
+
+      <HomePushBanner />
 
       {/* ── Prossimi appuntamenti ──────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 pt-10 pb-4">
@@ -246,6 +266,11 @@ export default async function HomePage() {
             </Link>
           </div>
         )}
+      </section>
+
+      {/* ── Mappa settimanale Italia ───────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-4 py-8">
+        <HomeWeeklyMap regionMarkets={regionMarkets} />
       </section>
 
       {/* ── Stats ──────────────────────────────────────────────────── */}
