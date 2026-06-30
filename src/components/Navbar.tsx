@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, MapPin, Calendar, LayoutDashboard, LogOut, Settings, ChevronDown, User } from 'lucide-react'
+import { Menu, X, MapPin, Calendar, Store, LayoutDashboard, LogOut, Settings, ChevronDown, User } from 'lucide-react'
 import { cn, avatarColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import GlobalSearch from '@/components/GlobalSearch'
@@ -11,7 +11,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const NAV = [
   { href: '/mercatini', label: 'Mercatini ed eventi', icon: Calendar },
-  { href: '/negozi',    label: 'Negozi' },
+  { href: '/negozi',    label: 'Negozi',               icon: Store   },
 ]
 
 
@@ -180,6 +180,13 @@ export default function Navbar() {
               {Icon && <Icon size={14} />}{label}
             </Link>
           ))}
+          {user && profile?.username && (
+            <Link href={`/profilo/${profile.username}`}
+              className="text-body-sm font-medium text-coffee flex items-center gap-2"
+              onClick={() => setOpen(false)}>
+              <User size={14} /> Il mio profilo
+            </Link>
+          )}
           <hr className="border-border" />
           {user ? (
             <>
