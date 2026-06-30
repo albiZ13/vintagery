@@ -6,7 +6,6 @@ import LandingHowItWorks from '@/components/sections/landing/LandingHowItWorks'
 import LandingCities from '@/components/sections/landing/LandingCities'
 import LandingForShops from '@/components/sections/landing/LandingForShops'
 import LandingNewsletter from '@/components/sections/landing/LandingNewsletter'
-import LandingSEO from '@/components/sections/landing/LandingSEO'
 import LandingCTA from '@/components/sections/landing/LandingCTA'
 import Footer from '@/components/Footer'
 
@@ -21,7 +20,6 @@ export default function LandingPage() {
       <LandingCities />
       <LandingForShops />
       <LandingNewsletter />
-      <LandingSEO />
       <LandingCTA />
       <Footer />
     </div>
