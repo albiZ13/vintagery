@@ -87,8 +87,9 @@ export default async function ProfilePage({ params }: Props) {
       initials={initials}
       color={color}
       displayName={displayName}
+      currentUserId={me?.id ?? null}
       purchases={purchases ?? []}
-      reviews={reviews ?? []}
+      reviews={(reviews ?? []) as any}
       savedMarkets={savedMarkets as Market[] | null}
       savedShops={savedShops as Shop[] | null}
     />

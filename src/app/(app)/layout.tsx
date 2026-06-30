@@ -4,6 +4,7 @@ import ProfileCompletionBanner from '@/components/ProfileCompletionBanner'
 import EmailVerificationBanner from '@/components/EmailVerificationBanner'
 import PWAInstallBanner from '@/components/PWAInstallBanner'
 import FeedbackWidget from '@/components/FeedbackWidget'
+import UsernameSetupModal from '@/components/UsernameSetupModal'
 import { createServerClient } from '@/lib/supabase-server'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Footer />
       <PWAInstallBanner />
       {user && <FeedbackWidget userId={user.id} />}
+      <UsernameSetupModal />
     </>
   )
 }

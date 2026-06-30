@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { ITALIAN_REGIONS } from '@/types'
+import { OAuthButtons } from '@/components/auth/OAuthButtons'
 
 type Step = 1 | 2 | 3
 
@@ -390,6 +391,15 @@ function RegisterForm() {
               >
                 Continua
               </button>
+
+              <div className="mt-6 relative flex items-center">
+                <div className="flex-grow border-t border-border/50" />
+                <span className="mx-3 text-[11px] text-muted/50 bg-[#FAF6F0] px-1">oppure</span>
+                <div className="flex-grow border-t border-border/50" />
+              </div>
+              <div className="mt-4">
+                <OAuthButtons next="/home" />
+              </div>
             </div>
           )}
 

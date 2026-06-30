@@ -5,15 +5,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Camera, Loader2, LayoutGrid, Star, Bookmark,
-  ShoppingBag, MapPin, Calendar, Settings,
+  ShoppingBag, MapPin, Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import UserFollowButton from '@/components/UserFollowButton'
 import ShareButton from '@/components/ShareButton'
 import TrustBadge from '@/components/TrustBadge'
-import StarRating from '@/components/StarRating'
 import MarketCard from '@/components/MarketCard'
 import ShopCard from '@/components/ShopCard'
+import ProfileReviewCard, { type ProfileReview } from '@/components/ProfileReviewCard'
 import type { Market, Shop } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -42,17 +42,7 @@ interface Purchase {
   shops?: { name: string; city: string } | null
 }
 
-interface Review {
-  id: string
-  title?: string | null
-  body?: string | null
-  rating: number
-  target_type: string
-  target_id: string
-  created_at: string
-  markets?: { name: string; city: string } | null
-  shops?: { name: string; city: string } | null
-}
+type Review = ProfileReview
 
 interface Props {
   profile: ProfileShape
@@ -61,6 +51,7 @@ interface Props {
   initials: string
   color: string
   displayName: string
+  currentUserId?: string | null
   purchases: Purchase[]
   reviews: Review[]
   savedMarkets: Market[] | null
@@ -69,7 +60,7 @@ interface Props {
 
 export default function ProfileClient({
   profile, isOwn, isFollowing, initials, color, displayName,
-  purchases, reviews, savedMarkets, savedShops,
+  currentUserId, purchases, reviews, savedMarkets, savedShops,
 }: Props) {
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? null)
   const [uploading, setUploading] = useState(false)
@@ -283,33 +274,7 @@ export default function ProfileClient({
           reviews.length > 0 ? (
             <div className="flex flex-col gap-3">
               {reviews.map(r => (
-                <div key={r.id} className="bg-white border border-border rounded-2xl p-5 hover:border-border-strong transition-colors">
-                  <div className="flex items-start justify-between gap-3 mb-2.5">
-                    <div className="flex-1 min-w-0">
-                      {r.title && (
-                        <p className="font-semibold text-[14px] text-espresso mb-0.5 leading-snug">{r.title}</p>
-                      )}
-                      <p className="text-muted text-[12px] flex items-center gap-1 flex-wrap">
-                        <MapPin size={10} />
-                        {r.target_type === 'market'
-                          ? <Link href={`/mercatini/${r.target_id}`} className="hover:text-sienna transition-colors">{r.markets?.name}</Link>
-                          : <Link href={`/negozi/${r.target_id}`} className="hover:text-sienna transition-colors">{r.shops?.name}</Link>
-                        }
-                        {(r.markets?.city ?? r.shops?.city) && (
-                          <span className="text-muted/50">· {r.markets?.city ?? r.shops?.city}</span>
-                        )}
-                      </p>
-                    </div>
-                    <StarRating rating={r.rating} size={13} />
-                  </div>
-                  {r.body && (
-                    <p className="text-coffee text-[13px] leading-relaxed line-clamp-4">{r.body}</p>
-                  )}
-                  <p className="text-muted/50 text-[11px] mt-3 flex items-center gap-1">
-                    <Calendar size={10} />
-                    {new Date(r.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
+                <ProfileReviewCard key={r.id} review={r} currentUserId={currentUserId} />
               ))}
             </div>
           ) : (

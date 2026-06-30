@@ -6,6 +6,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import MarketCard from '@/components/MarketCard'
 import EventCard from '@/components/EventCard'
 import FeaturedMarketCard from '@/components/FeaturedMarketCard'
+import FeaturedEventCard from '@/components/FeaturedEventCard'
 import ShopCard from '@/components/ShopCard'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
 import HomeWeeklyMap from '@/components/sections/home/HomeWeeklyMap'
@@ -236,7 +237,7 @@ export default async function HomePage() {
             {firstItem.kind === 'market' ? (
               <FeaturedMarketCard market={firstItem.item} weather={featuredWeather} />
             ) : (
-              <EventCard event={firstItem.item} todayStr={todayStr} />
+              <FeaturedEventCard event={firstItem.item} todayStr={todayStr} />
             )}
 
             {/* Griglia degli altri */}

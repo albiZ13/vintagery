@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { OAuthButtons } from '@/components/auth/OAuthButtons'
 
 const PATTERN = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9913a' fill-opacity='0.35'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
 
@@ -205,7 +206,16 @@ function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-border/50 text-center">
+          <div className="mt-6 relative flex items-center">
+            <div className="flex-grow border-t border-border/50" />
+            <span className="mx-3 text-[11px] text-muted/50 bg-cream px-1">oppure</span>
+            <div className="flex-grow border-t border-border/50" />
+          </div>
+          <div className="mt-4">
+            <OAuthButtons next={safeTo} />
+          </div>
+
+          <div className="mt-6 pt-5 border-t border-border/50 text-center">
             <p className="text-[13px] text-muted">
               Non hai un account?{' '}
               <Link href="/auth/register" className="text-espresso font-semibold hover:text-sienna transition-colors">
