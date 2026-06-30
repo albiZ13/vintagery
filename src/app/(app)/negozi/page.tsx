@@ -5,14 +5,15 @@ import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import ShopCard from '@/components/ShopCard'
+import SearchBar from '@/components/SearchBar'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
 import type { Shop } from '@/types'
 
 interface Props {
-  searchParams: { region?: string }
+  searchParams: { region?: string; q?: string; city?: string }
 }
 
-async function ShopList({ region }: { region: string | null }) {
+async function ShopList({ region, q, city }: { region: string | null; q?: string; city?: string }) {
   const supabase = createServerClient()
 
   const SHOP_COLS = 'id,name,city,region,image_url,plan,is_featured,is_verified,avg_rating,review_count,followers_count,categories,posts_count'
@@ -26,6 +27,8 @@ async function ShopList({ region }: { region: string | null }) {
     .limit(60)
 
   if (region) query = query.eq('region', region)
+  if (q)      query = query.ilike('name', `%${q}%`)
+  if (city)   query = query.ilike('city', `%${city}%`)
 
   const { data: shops } = await query
 
@@ -132,6 +135,15 @@ export default async function NegoziPage({ searchParams }: Props) {
           </p>
         </div>
 
+        <div className="mb-6">
+          <SearchBar
+            basePath="/negozi"
+            placeholder="Cerca un negozio…"
+            defaultQuery={searchParams.q}
+            defaultCity={searchParams.city}
+          />
+        </div>
+
         <Suspense fallback={
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -145,7 +157,7 @@ export default async function NegoziPage({ searchParams }: Props) {
             ))}
           </div>
         }>
-          <ShopList region={activeRegion} />
+          <ShopList region={activeRegion} q={searchParams.q} city={searchParams.city} />
         </Suspense>
 
       </div>

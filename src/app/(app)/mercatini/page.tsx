@@ -9,6 +9,8 @@ import MarketCard from '@/components/MarketCard'
 import EventsClient from '@/components/EventsClient'
 import SubscribeWidget from '@/components/SubscribeWidget'
 import RegionDropdown from '@/components/RegionDropdown'
+import MercatiniSearch from '@/components/MercatiniSearch'
+import VicinoAMe from '@/components/VicinoAMe'
 import { MONTHS_IT } from '@/types'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
@@ -31,6 +33,7 @@ interface Props {
     year?: string
     type?: string
     region?: string
+    q?: string
   }
 }
 
@@ -82,6 +85,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
   const { month, year } = getMonthYear(searchParams)
   const typeFilter   = searchParams.type   ?? 'all'
   const regionFilter = searchParams.region ?? 'all'
+  const q            = searchParams.q?.trim() ?? ''
 
   const startOfMonth = `${year}-${String(month).padStart(2,'0')}-01`
   const endOfMonth   = new Date(year, month, 0).toISOString().split('T')[0]
@@ -96,6 +100,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
     .order('is_featured', { ascending: false })
     .order('avg_rating',  { ascending: false })
   if (regionFilter !== 'all') marketsQuery = marketsQuery.eq('region', regionFilter)
+  if (q) marketsQuery = marketsQuery.or(`name.ilike.%${q}%,city.ilike.%${q}%`)
 
   // market_events ora contiene SOLO eventi una-tantum (i ricorrenti sono tutti in markets)
   let eventsQuery = supabase
@@ -111,6 +116,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
     eventsQuery = eventsQuery.eq('event_type', typeFilter)
   }
   if (regionFilter !== 'all') eventsQuery = eventsQuery.eq('region', regionFilter)
+  if (q) eventsQuery = eventsQuery.or(`name.ilike.%${q}%,city.ilike.%${q}%`)
 
   const [{ data: markets }, { data: events }] = await Promise.all([
     typeFilter === 'all' || typeFilter === 'mercatino' || typeFilter === 'antiquariato' || typeFilter === 'gratuiti'
@@ -271,8 +277,10 @@ export default function MercatiniPage({ searchParams }: Props) {
       <div className="max-w-5xl mx-auto px-4 py-6">
 
         {/* Filters row */}
-        <div className="flex items-center gap-2 mb-8 pb-6 border-b border-border">
+        <div className="flex items-center gap-2 mb-8 pb-6 border-b border-border flex-wrap">
+          <MercatiniSearch defaultQuery={searchParams.q} month={month} year={year} region={regionFilter} type={searchParams.type} />
           <RegionDropdown value={regionFilter} month={month} year={year} />
+          <VicinoAMe currentRegion={regionFilter} month={month} year={year} type={searchParams.type ?? 'all'} />
           <SubscribeWidget initialRegion={regionFilter !== 'all' ? regionFilter : undefined} />
           <EventsClient month={month} year={year} />
         </div>

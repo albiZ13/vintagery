@@ -10,6 +10,8 @@ import ReviewCard from '@/components/ReviewCard'
 import ReviewForm from '@/components/ReviewForm'
 import TrustBadge from '@/components/TrustBadge'
 import ShopProfileClient from '@/components/ShopProfileClient'
+import ContactShopButton from '@/components/ContactShopButton'
+import ShopMapLink from '@/components/ShopMapLink'
 import { formatRating } from '@/lib/utils'
 import type { Metadata } from 'next'
 
@@ -186,8 +188,11 @@ export default async function NegozioPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Follow button (client component) */}
-          <ShopProfileClient shopId={shop.id} />
+          {/* Follow + Contatta (client components) */}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <ShopProfileClient shopId={shop.id} />
+            <ContactShopButton shopId={shop.id} shopOwnerId={shop.owner_id ?? undefined} />
+          </div>
         </div>
 
         {/* Bio / descrizione */}
@@ -208,6 +213,9 @@ export default async function NegozioPage({ params }: Props) {
 
         {/* Info contatto */}
         <div className="flex flex-wrap gap-3 mt-3">
+          {shop.address && (
+            <ShopMapLink shopId={shop.id} address={shop.address} city={shop.city} lat={shop.lat} lng={shop.lng} />
+          )}
           {shop.website && (
             <a href={shop.website} target="_blank" rel="noopener noreferrer"
               className="text-caption text-sienna flex items-center gap-1 hover:underline">
