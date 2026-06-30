@@ -62,6 +62,7 @@ export default async function AdminPage() {
     { data: recentReviews },
     { data: lastScraperData },
     { count: aiMarketsCount },
+    { data: feedbackData },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('shops').select('*', { count: 'exact', head: true }),
@@ -100,6 +101,9 @@ export default async function AdminPage() {
       .order('created_at', { ascending: false }).limit(1),
     supabase.from('market_events')
       .select('*', { count: 'exact', head: true }).eq('source', 'gemini-ai'),
+    supabase.from('site_feedback')
+      .select('id,user_id,body,status,created_at,profiles(username,first_name,last_name)')
+      .order('created_at', { ascending: false }).limit(50),
   ])
 
   // Piano breakdown
@@ -168,6 +172,7 @@ export default async function AdminPage() {
       recentProposals={recentProposals ?? []}
       recentReviews={(recentReviews ?? []) as any}
       topShops={topShops          ?? []}
+      feedbacks={(feedbackData ?? []) as any}
     />
   )
 }
