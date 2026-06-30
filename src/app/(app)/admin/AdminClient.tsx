@@ -11,7 +11,11 @@ import {
   CheckCircle, XCircle, Eye, Loader2, Ban, MessageSquarePlus,
   Euro, BarChart2, ArrowUpRight, AlertTriangle, Activity, Search,
   Trash2, Crown, Bell, Send, ChevronDown, Bot, RefreshCw,
+  Radio, LayoutDashboard, Banknote, LineChart, Package,
+  FileStack, ThumbsUp, UserCog, Map, MessageCircle, ChevronRight,
 } from 'lucide-react'
+import LiveSection from './LiveSection'
+import RoadmapSection from './RoadmapSection'
 import { cn } from '@/lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ interface Review {
   shops: { name: string; city: string } | null
 }
 
-type Tab = 'overview' | 'revenue' | 'growth' | 'shops' | 'markets' | 'proposals' | 'reviews' | 'users' | 'notifications'
+type Tab = 'live' | 'overview' | 'revenue' | 'growth' | 'shops' | 'markets' | 'proposals' | 'reviews' | 'feedback' | 'users' | 'notifications' | 'roadmap'
 
 const PLAN_COLORS: Record<string, string> = { premium: '#c9a84c', free: '#b8afa8', pro: '#4a7c59' }
 const CHART_COLORS = { utenti: '#1c2e4a', negozi: '#c9a84c' }
@@ -97,7 +101,7 @@ function StatCard({ label, value, sub, icon: Icon, color, trend }: {
 export default function AdminClient({
   stats, planBreakdown, shopsByRegion, marketsByRegion,
   growthSeries, recentShops, recentMarkets, recentUsers, recentProposals, recentReviews, topShops,
-  emailMap = {}, lastScraperRun = null, aiMarketsCount = 0,
+  emailMap = {}, lastScraperRun = null, aiMarketsCount = 0, feedbacks = [],
 }: {
   stats: Stats
   planBreakdown: { plan: string; n: number }[]
@@ -113,8 +117,9 @@ export default function AdminClient({
   emailMap?: Record<string, string>
   lastScraperRun?: string | null
   aiMarketsCount?: number
+  feedbacks?: { id: string; user_id: string; body: string; status: string; created_at: string; profiles: { username: string | null; first_name: string | null; last_name: string | null } | null }[]
 }) {
-  const [tab, setTab]             = useState<Tab>('overview')
+  const [tab, setTab]             = useState<Tab>('live')
   const [shops, setShops]         = useState<Shop[]>(recentShops)
   const [markets, setMarkets]     = useState<Market[]>(recentMarkets)
   const [users, setUsers]         = useState<UserRow[]>(recentUsers)
@@ -260,18 +265,46 @@ export default function AdminClient({
     setNotifSending(false)
   }
 
-  // ── Tabs ──────────────────────────────────────────────────────────────────
+  // ── Sidebar nav ───────────────────────────────────────────────────────────
 
-  const TABS: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'overview',       label: 'Overview' },
-    { id: 'revenue',        label: 'Ricavi' },
-    { id: 'growth',         label: 'Crescita' },
-    { id: 'shops',          label: 'Negozi',       badge: shops.filter(s => !s.is_verified).length || undefined },
-    { id: 'markets',        label: 'Mercatini' },
-    { id: 'proposals',      label: 'Proposte',     badge: stats.pendingProposals || undefined },
-    { id: 'reviews',        label: 'Recensioni' },
-    { id: 'users',          label: 'Utenti' },
-    { id: 'notifications',  label: 'Notifiche' },
+  const NAV_SECTIONS = [
+    {
+      label: null,
+      items: [
+        { id: 'live' as Tab, label: 'Live', icon: Radio, badge: undefined },
+      ],
+    },
+    {
+      label: 'Sistema',
+      items: [
+        { id: 'overview'      as Tab, label: 'Overview',   icon: LayoutDashboard, badge: undefined },
+        { id: 'revenue'       as Tab, label: 'Revenue',    icon: Banknote,        badge: undefined },
+        { id: 'growth'        as Tab, label: 'Crescita',   icon: LineChart,       badge: undefined },
+      ],
+    },
+    {
+      label: 'Contenuti',
+      items: [
+        { id: 'shops'     as Tab, label: 'Negozi',     icon: Store,            badge: shops.filter(s => !s.is_verified).length || undefined },
+        { id: 'markets'   as Tab, label: 'Mercatini',  icon: MapPin,           badge: undefined },
+        { id: 'proposals' as Tab, label: 'Proposte',   icon: FileStack,        badge: stats.pendingProposals || undefined },
+        { id: 'reviews'   as Tab, label: 'Recensioni', icon: ThumbsUp,         badge: undefined },
+        { id: 'feedback'  as Tab, label: 'Feedback',   icon: MessageCircle,    badge: undefined },
+      ],
+    },
+    {
+      label: 'Community',
+      items: [
+        { id: 'users'         as Tab, label: 'Utenti',    icon: UserCog, badge: undefined },
+        { id: 'notifications' as Tab, label: 'Notifiche', icon: Bell,    badge: undefined },
+      ],
+    },
+    {
+      label: 'Prodotto',
+      items: [
+        { id: 'roadmap' as Tab, label: 'Roadmap', icon: Map, badge: undefined },
+      ],
+    },
   ]
 
   // ── Filters ───────────────────────────────────────────────────────────────
@@ -301,65 +334,156 @@ export default function AdminClient({
     : '0'
 
   return (
-    <div className="min-h-screen bg-[#f7f5f2]">
-      {/* Header */}
-      <div className="bg-espresso text-parchment px-6 py-5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldCheck size={20} className="text-gold" />
-            <h1 className="font-serif text-xl font-bold">Admin Panel</h1>
-          </div>
-          <div className="flex items-center gap-4 text-[12px] text-parchment/60">
-            <span className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              Sistema operativo
-            </span>
-            <span>{new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+    <div className="min-h-screen bg-[#f4f2ef] flex">
+
+      {/* ── SIDEBAR ────────────────────────────────────────────────────── */}
+      <aside className="w-[210px] flex-shrink-0 sticky top-0 h-screen overflow-y-auto flex flex-col"
+        style={{ background: '#1a2b43' }}>
+
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-white/8">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck size={16} className="text-gold flex-shrink-0" />
+            <div>
+              <p className="font-serif font-bold text-parchment text-[15px] leading-none">Vintagery</p>
+              <p className="text-[9px] text-parchment/30 mt-0.5 tracking-[0.15em] uppercase">Admin</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-
-        {/* Alerts */}
-        {(stats.pendingProposals > 0 || shops.some(s => !s.is_verified)) && (
-          <div className="flex flex-wrap gap-2 mb-5">
+        {/* Alerts compatti */}
+        {(shops.filter(s => !s.is_verified).length > 0 || stats.pendingProposals > 0) && (
+          <div className="px-3 py-3 border-b border-white/8 space-y-1.5">
             {shops.filter(s => !s.is_verified).length > 0 && (
               <button onClick={() => { setTab('shops'); setShopFilter('pending') }}
-                className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-2.5 text-[12px] font-semibold hover:bg-amber-100 transition-colors">
-                <AlertTriangle size={13} />
-                {shops.filter(s => !s.is_verified).length} negozi in attesa di verifica
+                className="w-full flex items-center gap-2 bg-amber-500/15 border border-amber-400/20 text-amber-300 rounded-lg px-3 py-2 text-[11px] font-semibold hover:bg-amber-500/25 transition-colors text-left">
+                <AlertTriangle size={11} className="flex-shrink-0" />
+                <span>{shops.filter(s => !s.is_verified).length} negozi da verificare</span>
               </button>
             )}
             {stats.pendingProposals > 0 && (
               <button onClick={() => setTab('proposals')}
-                className="flex items-center gap-2 bg-purple-50 border border-purple-200 text-purple-800 rounded-xl px-4 py-2.5 text-[12px] font-semibold hover:bg-purple-100 transition-colors">
-                <MessageSquarePlus size={13} />
-                {stats.pendingProposals} proposte in attesa
+                className="w-full flex items-center gap-2 bg-purple-500/15 border border-purple-400/20 text-purple-300 rounded-lg px-3 py-2 text-[11px] font-semibold hover:bg-purple-500/25 transition-colors text-left">
+                <MessageSquarePlus size={11} className="flex-shrink-0" />
+                <span>{stats.pendingProposals} proposte in attesa</span>
               </button>
             )}
           </div>
         )}
 
-        {/* Tab nav */}
-        <div className="flex flex-wrap gap-1 bg-white border border-border rounded-xl p-1 mb-6 w-fit">
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={cn(
-                'relative px-4 py-2 rounded-lg text-[13px] font-medium transition-colors',
-                tab === t.id
-                  ? 'bg-espresso text-parchment shadow-sm'
-                  : 'text-muted hover:text-espresso'
-              )}>
-              {t.label}
-              {t.badge ? (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-sienna text-white text-[9px] font-bold flex items-center justify-center">
-                  {t.badge}
-                </span>
-              ) : null}
-            </button>
+        {/* Nav sections */}
+        <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto">
+          {NAV_SECTIONS.map((section, si) => (
+            <div key={si}>
+              {section.label && (
+                <p className="text-[8px] font-bold tracking-[0.22em] uppercase text-white/20 px-3 mb-1">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map(item => {
+                  const Icon = item.icon
+                  const active = tab === item.id
+                  return (
+                    <button key={item.id} onClick={() => setTab(item.id)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all relative',
+                        active
+                          ? 'bg-white/12 text-white'
+                          : 'text-white/40 hover:text-white/70 hover:bg-white/6',
+                      )}>
+                      <Icon size={14} className="flex-shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.badge ? (
+                        <span className="w-5 h-5 rounded-full bg-sienna text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+                          {item.badge}
+                        </span>
+                      ) : active ? (
+                        <ChevronRight size={11} className="opacity-40 flex-shrink-0" />
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-white/8">
+          <div className="flex items-center gap-1.5 text-[9px] text-white/20">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+            </span>
+            Sistema operativo
+          </div>
+          <p className="text-[9px] text-white/15 mt-0.5">
+            {new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}
+          </p>
         </div>
+      </aside>
+
+      {/* ── CONTENT ────────────────────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 overflow-y-auto">
+
+        {/* Page header */}
+        <div className="bg-white border-b border-border/60 px-7 py-4 flex items-center gap-3 sticky top-0 z-10">
+          {(() => {
+            const allItems = NAV_SECTIONS.flatMap(s => s.items)
+            const current  = allItems.find(i => i.id === tab)
+            const Icon = current?.icon ?? LayoutDashboard
+            return (
+              <>
+                <Icon size={16} className="text-muted flex-shrink-0" />
+                <h1 className="font-serif font-bold text-espresso text-[18px]">{current?.label ?? ''}</h1>
+              </>
+            )
+          })()}
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-[12px] text-muted">
+              {fmt(stats.totalUsers)} utenti · {fmt(stats.totalMarkets)} mercatini
+            </span>
+            <span className="text-[12px] font-semibold text-gold">{fmtEur(stats.mrr)}/mese</span>
+          </div>
+        </div>
+
+        <div className="px-7 py-6">
+
+        {/* ── LIVE ─────────────────────────────────────────────────── */}
+        {tab === 'live' && <LiveSection />}
+
+        {/* ── ROADMAP ──────────────────────────────────────────────── */}
+        {tab === 'roadmap' && <RoadmapSection />}
+
+        {/* ── FEEDBACK ─────────────────────────────────────────────── */}
+        {tab === 'feedback' && (
+          <div className="space-y-3">
+            {(!feedbacks || feedbacks.length === 0) ? (
+              <p className="text-muted text-sm text-center py-12">Nessun feedback ancora.</p>
+            ) : feedbacks.map(f => {
+              const author = f.profiles?.first_name ?? f.profiles?.username ?? 'Anonimo'
+              return (
+                <div key={f.id} className={cn('bg-white border rounded-xl px-4 py-4',
+                  f.status === 'new' ? 'border-blue-200 bg-blue-50/20' : 'border-border')}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[12px] font-semibold text-espresso">{author}</span>
+                        <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium',
+                          f.status === 'new' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')}>
+                          {f.status === 'new' ? 'Nuovo' : f.status}
+                        </span>
+                        <span className="text-[11px] text-muted ml-auto">{fmtDate(f.created_at)}</span>
+                      </div>
+                      <p className="text-[13px] text-coffee leading-relaxed">{f.body}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* ── OVERVIEW ─────────────────────────────────────────────── */}
         {tab === 'overview' && (
@@ -1067,7 +1191,8 @@ export default function AdminClient({
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   )
 }

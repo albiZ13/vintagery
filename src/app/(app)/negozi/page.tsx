@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { Clock } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase-server'
 import ShopCard from '@/components/ShopCard'
 import HomeRegionHeader from '@/components/sections/home/HomeRegionHeader'
@@ -99,6 +100,22 @@ export default async function NegoziPage({ searchParams }: Props) {
       />
 
       <div className="max-w-5xl mx-auto px-4 py-10">
+
+        {/* Banner in elaborazione */}
+        <div className="mb-10 rounded-2xl border border-espresso/12 bg-espresso/[0.03] px-6 py-5 flex gap-4 items-start">
+          <div className="mt-0.5 w-9 h-9 rounded-xl bg-espresso/8 flex items-center justify-center flex-shrink-0">
+            <Clock size={16} className="text-espresso/60" />
+          </div>
+          <div>
+            <p className="font-serif font-bold text-espresso text-[15px] leading-snug mb-1">
+              Questa sezione è in lavorazione
+            </p>
+            <p className="text-[13px] text-muted leading-relaxed">
+              Stiamo costruendo prima la community dei mercatini — chi cerca, chi va, chi scopre.
+              I negozi arriveranno quando ci sarà già un pubblico interessato che li aspetta.
+            </p>
+          </div>
+        </div>
 
         {/* Section title */}
         <div className="mb-8">
