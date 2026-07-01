@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, MapPin, Calendar, Store, LayoutDashboard, LogOut, Settings, ChevronDown, User, Download, ShieldCheck } from 'lucide-react'
+import { Menu, X, MapPin, Calendar, Store, LayoutDashboard, LogOut, Settings, ChevronDown, User, Download, ShieldCheck, MessageSquare } from 'lucide-react'
 import { cn, avatarColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import GlobalSearch from '@/components/GlobalSearch'
@@ -132,6 +132,11 @@ export default function Navbar() {
                     onClick={() => setDropOpen(false)}>
                     <Settings size={14} /> Impostazioni
                   </Link>
+                  <Link href="/messaggi"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
+                    onClick={() => setDropOpen(false)}>
+                    <MessageSquare size={14} /> Messaggi
+                  </Link>
                   <Link href="/dashboard"
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
                     onClick={() => setDropOpen(false)}>
@@ -192,6 +197,9 @@ export default function Navbar() {
             <>
               <Link href="/impostazioni" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
                 <Settings size={14} /> Impostazioni
+              </Link>
+              <Link href="/messaggi" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
+                <MessageSquare size={14} /> Messaggi
               </Link>
               <Link href="/dashboard" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
                 <LayoutDashboard size={14} /> Dashboard negozio
