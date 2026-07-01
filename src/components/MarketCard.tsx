@@ -14,6 +14,15 @@ const FREQ_LABEL: Record<string, string> = {
   annuale:     'Annuale',
 }
 
+function extractCadence(text: string): string {
+  return text
+    .replace(/\s*\([\s\S]*$/, '')
+    .replace(/\.\s[\s\S]*$/, '')
+    .replace(/,\s*ore\s[\s\S]*$/i, '')
+    .replace(/,\s*(sabato|domenica|lunedì|martedì|mercoledì|giovedì|venerdì)[\s\S]*/i, '')
+    .trim()
+}
+
 const MONTHS    = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
 const DAYS_LONG = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
 
@@ -30,7 +39,12 @@ export default function MarketCard({ market, compact = false }: Props) {
 
   const isFree   = /gratuito|gratis|free/i.test(market.price_info ?? '')
   const cats     = (market.categories ?? []).slice(0, 4)
-  const schedule = market.schedule_notes ?? (market.frequency ? FREQ_LABEL[market.frequency] : null)
+  const cadence  = market.schedule_notes
+    ? extractCadence(market.schedule_notes)
+    : (market.frequency ? FREQ_LABEL[market.frequency] : null)
+  const scheduleDetail = market.schedule_notes && market.schedule_notes !== cadence
+    ? market.schedule_notes
+    : null
   const desc     = market.description?.split('\n')[0]?.slice(0, 200) ?? null
 
   const { date: d, isComputed, isOffSeason } = resolveDisplayDate(market)
@@ -75,7 +89,7 @@ export default function MarketCard({ market, compact = false }: Props) {
           <span className="inline-flex items-center gap-1.5 bg-white/18 backdrop-blur-sm border border-white/25 rounded-full px-2.5 py-1">
             <RefreshCw size={9} className="text-white/75" />
             <span className="text-[10px] font-semibold text-white leading-none">
-              {schedule ?? 'Ricorrente'}
+              {cadence ?? 'Ricorrente'}
             </span>
           </span>
         </div>
@@ -142,6 +156,9 @@ export default function MarketCard({ market, compact = false }: Props) {
           </div>
         )}
 
+        {!compact && scheduleDetail && (
+          <p className="text-[12px] text-muted leading-[1.65] mb-2 line-clamp-2">{scheduleDetail}</p>
+        )}
         {!compact && desc && (
           <p className="text-[12px] text-muted leading-[1.65] mb-3.5 line-clamp-3">{desc}</p>
         )}

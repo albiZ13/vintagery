@@ -20,7 +20,7 @@ export default function LandingCTA() {
           className="font-serif font-bold text-espresso leading-[1.06] tracking-[-0.015em] mb-5"
           style={{ fontSize: 'clamp(2.2rem, 5vw, 3.4rem)' }}
         >
-          Il vintage italiano ti aspetta.
+          Tutto il vintage d'Italia, in un clic.
         </h2>
         <p className="text-muted leading-relaxed mb-10" style={{ fontSize: '15px' }}>
           Gratis per gli utenti. Per sempre.<br />

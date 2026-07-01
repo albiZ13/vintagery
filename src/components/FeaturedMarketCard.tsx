@@ -18,6 +18,15 @@ const FREQ_LABEL: Record<string, string> = {
   occasionale: 'Occasionale',
 }
 
+function extractCadence(text: string): string {
+  return text
+    .replace(/\s*\([\s\S]*$/, '')
+    .replace(/\.\s[\s\S]*$/, '')
+    .replace(/,\s*ore\s[\s\S]*$/i, '')
+    .replace(/,\s*(sabato|domenica|lunedì|martedì|mercoledì|giovedì|venerdì)[\s\S]*/i, '')
+    .trim()
+}
+
 interface Props {
   market: Market
   weather: WeatherDay[]
@@ -29,7 +38,12 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
   const [g1, g2] = cfg.gradient
   const accent  = cfg.accent
 
-  const schedule = market.schedule_notes ?? (market.frequency ? FREQ_LABEL[market.frequency] : null)
+  const cadence  = market.schedule_notes
+    ? extractCadence(market.schedule_notes)
+    : (market.frequency ? FREQ_LABEL[market.frequency] : null)
+  const scheduleDetail = market.schedule_notes && market.schedule_notes !== cadence
+    ? market.schedule_notes
+    : null
   const desc     = market.description?.split('\n')[0] ?? null
   const isFree   = /gratuito|gratis|free/i.test(market.price_info ?? '')
   const typeLabel = (market.categories?.[0] ?? 'Mercato ricorrente')
@@ -71,10 +85,10 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
                   <BadgeCheck size={8} /> Verificato
                 </span>
               )}
-              {schedule && (
+              {cadence && (
                 <span className="inline-flex items-center gap-1.5 bg-white/18 border border-white/25 rounded-full px-2.5 py-0.5">
                   <RefreshCw size={8} className="text-white/70" />
-                  <span className="text-[9px] font-semibold text-white">{schedule}</span>
+                  <span className="text-[9px] font-semibold text-white">{cadence}</span>
                 </span>
               )}
             </div>
@@ -174,9 +188,14 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
       </div>
 
       {/* ── DESCRIZIONE ──────────────────────────────────────────────── */}
-      {desc && (
+      {(scheduleDetail || desc) && (
         <div className="px-6 py-4 border-b border-border/50">
-          <p className="text-[13px] text-coffee leading-[1.75] line-clamp-2">{desc}</p>
+          {scheduleDetail && (
+            <p className="text-[12px] text-muted leading-[1.75] line-clamp-2 mb-1.5">{scheduleDetail}</p>
+          )}
+          {desc && (
+            <p className="text-[13px] text-coffee leading-[1.75] line-clamp-2">{desc}</p>
+          )}
         </div>
       )}
 

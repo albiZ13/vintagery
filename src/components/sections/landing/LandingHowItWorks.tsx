@@ -79,9 +79,6 @@ export default function LandingHowItWorks() {
           ))}
         </div>
 
-        <p className="text-center text-[12px] text-muted mt-10">
-          Iscriviti in 30 secondi — nessuna carta di credito.
-        </p>
       </div>
     </section>
   )

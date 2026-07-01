@@ -76,8 +76,8 @@ export default async function LandingLatest() {
               className="font-serif font-black text-espresso leading-[1.02] tracking-[-0.025em]"
               style={{ fontSize: 'clamp(2rem, 4.5vw, 3rem)' }}
             >
-              Il vintage italiano,<br />
-              <span className="text-sienna">tutto qui.</span>
+              Mercatini e negozi,<br />
+              <span className="text-sienna">in un posto solo.</span>
             </h2>
           </div>
           <div className="hidden sm:flex flex-col items-end gap-2 pb-1">
@@ -92,7 +92,7 @@ export default async function LandingLatest() {
       </div>
 
       {/* Ticker mercatini → */}
-      <div className="relative mb-3">
+      <div className="relative mb-3" aria-hidden="true">
         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-parchment to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-parchment to-transparent z-10 pointer-events-none" />
         <div className="flex animate-marquee-left gap-2.5 w-max">
@@ -103,7 +103,7 @@ export default async function LandingLatest() {
       </div>
 
       {/* Ticker negozi ← */}
-      <div className="relative">
+      <div className="relative" aria-hidden="true">
         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-parchment to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-parchment to-transparent z-10 pointer-events-none" />
         <div className="flex animate-marquee-right gap-2.5 w-max">
