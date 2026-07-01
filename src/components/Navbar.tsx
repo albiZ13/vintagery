@@ -137,11 +137,13 @@ export default function Navbar() {
                     onClick={() => setDropOpen(false)}>
                     <MessageSquare size={14} /> Messaggi
                   </Link>
-                  <Link href="/dashboard"
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
-                    onClick={() => setDropOpen(false)}>
-                    <LayoutDashboard size={14} /> Dashboard negozio
-                  </Link>
+                  {(profile?.role === 'shop_owner' || profile?.role === 'admin') && (
+                    <Link href="/dashboard"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
+                      onClick={() => setDropOpen(false)}>
+                      <LayoutDashboard size={14} /> Dashboard negozio
+                    </Link>
+                  )}
                   <Link href="/installa"
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
                     onClick={() => setDropOpen(false)}>
@@ -149,7 +151,7 @@ export default function Navbar() {
                   </Link>
                   {profile?.role === 'admin' && (
                     <Link href="/admin"
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-sienna hover:bg-red-50 font-semibold transition-colors"
                       onClick={() => setDropOpen(false)}>
                       <ShieldCheck size={14} /> Admin
                     </Link>
@@ -201,14 +203,16 @@ export default function Navbar() {
               <Link href="/messaggi" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
                 <MessageSquare size={14} /> Messaggi
               </Link>
-              <Link href="/dashboard" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
-                <LayoutDashboard size={14} /> Dashboard negozio
-              </Link>
+              {(profile?.role === 'shop_owner' || profile?.role === 'admin') && (
+                <Link href="/dashboard" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
+                  <LayoutDashboard size={14} /> Dashboard negozio
+                </Link>
+              )}
               <Link href="/installa" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
                 <Download size={14} /> Installa l&apos;app
               </Link>
               {profile?.role === 'admin' && (
-                <Link href="/admin" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
+                <Link href="/admin" className="text-body-sm text-sienna font-semibold flex items-center gap-2" onClick={() => setOpen(false)}>
                   <ShieldCheck size={14} /> Admin
                 </Link>
               )}
