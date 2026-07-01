@@ -51,7 +51,6 @@ function buildDetails(ev: EventData): string {
     ev.tips           ? `💡 Consigli: ${ev.tips}`           : null,
     ev.instagram      ? `📸 Instagram: @${ev.instagram.replace(/^@/, '')}` : null,
     ev.website        ? `🌐 Sito: ${ev.website}`            : null,
-    `🗺 Vintagery: https://vintagery.it/mercatini/${ev.id}`,
   ].filter(Boolean).join('\n')
 }
 
@@ -100,7 +99,6 @@ function buildICS(ev: EventData): string {
     ev.tips       ? `Consigli: ${escICS(ev.tips)}`             : '',
     instagram     ? `Instagram: ${instagram}`                  : '',
     ev.website    ? `Sito: ${escICS(ev.website)}`              : '',
-    `Vintagery: https://vintagery.it/mercatini/${ev.id}`,
   ].filter(Boolean).join('\\n')
 
   return [
