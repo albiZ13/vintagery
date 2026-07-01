@@ -28,15 +28,7 @@ interface Props {
   event: EventData
 }
 
-// ── Calendar URL builders ────────────────────────────────────────────────────
-
-function toGoogleDate(dateStr: string, timeStr?: string | null): string {
-  if (!timeStr) return dateStr.replace(/-/g, '')
-  const dt = new Date(`${dateStr}T${timeStr}`)
-  return isNaN(dt.getTime())
-    ? dateStr.replace(/-/g, '')
-    : dt.toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function nextDay(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
@@ -51,17 +43,106 @@ function addHours(timeStr: string, h: number): string {
 }
 
 function buildDetails(ev: EventData): string {
-  const SITE = 'https://vintagery.it'
   return [
-    ev.description?.split('\n')[0]?.slice(0, 250) ?? null,
+    ev.description?.split('\n')[0]?.replace(/\s*Cadenza:.*$/i, '').slice(0, 250) ?? null,
     ev.schedule_notes ? `📅 Cadenza: ${ev.schedule_notes}` : ev.frequency ? `📅 Cadenza: ${ev.frequency}` : null,
     ev.price_info     ? `🎟 Ingresso: ${ev.price_info}`    : null,
     ev.organizer      ? `👤 Organizzatore: ${ev.organizer}` : null,
     ev.tips           ? `💡 Consigli: ${ev.tips}`           : null,
     ev.instagram      ? `📸 Instagram: @${ev.instagram.replace(/^@/, '')}` : null,
     ev.website        ? `🌐 Sito: ${ev.website}`            : null,
-    `🗺 Vintagery: ${SITE}/mercatini/${ev.id}`,
+    `🗺 Vintagery: https://vintagery.it/mercatini/${ev.id}`,
   ].filter(Boolean).join('\n')
+}
+
+// ── ICS client-side ───────────────────────────────────────────────────────────
+
+function escICS(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+}
+
+function foldICS(line: string): string {
+  if (line.length <= 75) return line
+  const out = [line.slice(0, 75)]
+  let i = 75
+  while (i < line.length) { out.push(' ' + line.slice(i, i + 74)); i += 74 }
+  return out.join('\r\n')
+}
+
+function toICSDate(dateStr: string, timeStr?: string | null): string {
+  if (!timeStr) return dateStr.replace(/-/g, '')
+  const d = new Date(`${dateStr}T${timeStr}`)
+  if (isNaN(d.getTime())) return dateStr.replace(/-/g, '')
+  return d.toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')
+}
+
+function buildICS(ev: EventData): string {
+  const startDate = ev.start_date!
+  const allDay    = !ev.start_time
+  const endTime   = ev.end_time ?? (ev.start_time ? addHours(ev.start_time, 3) : null)
+  const endDate   = ev.end_date ?? (allDay ? nextDay(startDate) : startDate)
+
+  const dtstart     = toICSDate(startDate, ev.start_time)
+  const dtend       = toICSDate(endDate, endTime)
+  const dtStartLine = allDay ? `DTSTART;VALUE=DATE:${dtstart}` : `DTSTART:${dtstart}`
+  const dtEndLine   = allDay ? `DTEND;VALUE=DATE:${dtend}`     : `DTEND:${dtend}`
+
+  const location  = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
+  const cadenza   = ev.schedule_notes ?? ev.frequency ?? null
+  const mainDesc  = ev.description?.split('\n')[0]?.replace(/\s*Cadenza:.*$/i, '').trim() ?? ''
+  const instagram = ev.instagram ? `@${ev.instagram.replace(/^@/, '')}` : null
+
+  const desc = [
+    mainDesc      ? escICS(mainDesc)                           : '',
+    cadenza       ? `Cadenza: ${escICS(cadenza)}`              : '',
+    ev.price_info ? `Ingresso: ${escICS(ev.price_info)}`       : '',
+    ev.organizer  ? `Organizzatore: ${escICS(ev.organizer)}`   : '',
+    ev.tips       ? `Consigli: ${escICS(ev.tips)}`             : '',
+    instagram     ? `Instagram: ${instagram}`                  : '',
+    ev.website    ? `Sito: ${escICS(ev.website)}`              : '',
+    `Vintagery: https://vintagery.it/mercatini/${ev.id}`,
+  ].filter(Boolean).join('\\n')
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Vintagery//IT',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${ev.id}@vintagery.it`,
+    dtStartLine,
+    dtEndLine,
+    foldICS(`SUMMARY:${escICS(ev.name)}`),
+    location ? foldICS(`LOCATION:${escICS(location)}`) : '',
+    desc     ? foldICS(`DESCRIPTION:${desc}`)          : '',
+    `URL:https://vintagery.it/mercatini/${ev.id}`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n')
+}
+
+function downloadICS(ev: EventData) {
+  const content = buildICS(ev)
+  const blob    = new Blob([content], { type: 'text/calendar;charset=utf-8' })
+  const url     = URL.createObjectURL(blob)
+  const slug    = ev.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)
+  const a       = document.createElement('a')
+  a.href        = url
+  a.download    = `${slug}.ics`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// ── Google / Outlook URL builders ─────────────────────────────────────────────
+
+function toGoogleDate(dateStr: string, timeStr?: string | null): string {
+  if (!timeStr) return dateStr.replace(/-/g, '')
+  const dt = new Date(`${dateStr}T${timeStr}`)
+  return isNaN(dt.getTime()) ? dateStr.replace(/-/g, '') : dt.toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')
 }
 
 function buildGoogleUrl(ev: EventData): string {
@@ -74,9 +155,7 @@ function buildGoogleUrl(ev: EventData): string {
   const loc       = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
   const details   = buildDetails(ev)
   const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text:   ev.name,
-    dates:  `${start}/${end}`,
+    action: 'TEMPLATE', text: ev.name, dates: `${start}/${end}`,
     ...(loc     && { location: loc }),
     ...(details && { details }),
   })
@@ -101,7 +180,7 @@ function buildOutlookUrl(ev: EventData): string {
   return `https://outlook.live.com/calendar/0/deeplink/compose?${params}`
 }
 
-// ── Icons ────────────────────────────────────────────────────────────────────
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function GoogleIcon() {
   return (
@@ -143,40 +222,16 @@ function ICSIcon() {
   )
 }
 
-// ── Calendar options ─────────────────────────────────────────────────────────
+// ── Options ───────────────────────────────────────────────────────────────────
 
 const OPTIONS = [
-  {
-    id: 'google',
-    label: 'Google Calendar',
-    sublabel: 'Apre in una nuova scheda',
-    Icon: GoogleIcon,
-    bg: 'hover:bg-[#f8f4ff]',
-  },
-  {
-    id: 'apple',
-    label: 'Apple Calendar',
-    sublabel: 'Calendario, Fantastical, Tempi…',
-    Icon: AppleIcon,
-    bg: 'hover:bg-gray-50',
-  },
-  {
-    id: 'outlook',
-    label: 'Outlook',
-    sublabel: 'Outlook.com e Office 365',
-    Icon: OutlookIcon,
-    bg: 'hover:bg-blue-50',
-  },
-  {
-    id: 'ics',
-    label: 'Scarica .ics',
-    sublabel: 'Compatibile con tutti i calendari',
-    Icon: ICSIcon,
-    bg: 'hover:bg-cream',
-  },
+  { id: 'google',  label: 'Google Calendar', sublabel: 'Apre in una nuova scheda',         Icon: GoogleIcon,  bg: 'hover:bg-[#f8f4ff]' },
+  { id: 'apple',   label: 'Apple Calendar',  sublabel: 'Calendario, Fantastical, Tempi…',  Icon: AppleIcon,   bg: 'hover:bg-gray-50'    },
+  { id: 'outlook', label: 'Outlook',         sublabel: 'Outlook.com e Office 365',          Icon: OutlookIcon, bg: 'hover:bg-blue-50'    },
+  { id: 'ics',     label: 'Scarica .ics',    sublabel: 'Compatibile con tutti i calendari', Icon: ICSIcon,     bg: 'hover:bg-cream'      },
 ]
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Formatters ────────────────────────────────────────────────────────────────
 
 function formatPreviewDate(ev: EventData): string {
   if (!ev.start_date) return ''
@@ -184,15 +239,17 @@ function formatPreviewDate(ev: EventData): string {
   const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' }
   let s = d.toLocaleDateString('it-IT', opts)
   if (ev.end_date && ev.end_date !== ev.start_date) {
-    const e = new Date(ev.end_date)
+    const e = new Date(ev.end_date + 'T12:00:00')
     s += ` – ${e.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}`
   }
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function AddToCalendar({ event }: Props) {
-  const [open, setOpen]       = useState(false)
-  const [above, setAbove]     = useState(false)
+  const [open, setOpen]   = useState(false)
+  const [above, setAbove] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef   = useRef<HTMLDivElement>(null)
 
@@ -216,23 +273,12 @@ export default function AddToCalendar({ event }: Props) {
 
   function handleSelect(id: string) {
     setOpen(false)
-    const src = event.icsTable ?? 'event'
-    const icsUrl = `/api/event-ics?id=${event.id}&source=${src}`
     if (id === 'google') {
       window.open(buildGoogleUrl(event), '_blank', 'noopener noreferrer')
-    } else if (id === 'apple') {
-      const a = document.createElement('a')
-      a.href = `webcal://${window.location.host}${icsUrl}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+    } else if (id === 'apple' || id === 'ics') {
+      downloadICS(event)
     } else if (id === 'outlook') {
       window.open(buildOutlookUrl(event), '_blank', 'noopener noreferrer')
-    } else if (id === 'ics') {
-      const a = document.createElement('a')
-      a.href = icsUrl
-      a.download = `${event.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.ics`
-      a.click()
     }
   }
 
@@ -283,10 +329,7 @@ export default function AddToCalendar({ event }: Props) {
             {(event.start_time || event.end_time) && (
               <div className="flex items-center gap-1.5 text-[11px] text-coffee">
                 <Clock size={10} className="text-sienna flex-shrink-0" />
-                <span>
-                  {event.start_time}
-                  {event.end_time ? ` – ${event.end_time}` : ''}
-                </span>
+                <span>{event.start_time}{event.end_time ? ` – ${event.end_time}` : ''}</span>
               </div>
             )}
             {loc && (
@@ -309,7 +352,7 @@ export default function AddToCalendar({ event }: Props) {
             )}
           </div>
 
-          {/* Calendar options */}
+          {/* Options */}
           <div className="border-t border-border/60 pb-1.5">
             {OPTIONS.map(({ id, label, sublabel, Icon, bg }) => (
               <button
