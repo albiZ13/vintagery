@@ -12,6 +12,7 @@ import TrustBadge from '@/components/TrustBadge'
 import ShopProfileClient from '@/components/ShopProfileClient'
 import ContactShopButton from '@/components/ContactShopButton'
 import ShopMapLink from '@/components/ShopMapLink'
+import ShopViewTracker from '@/components/ShopViewTracker'
 import { formatRating } from '@/lib/utils'
 import type { Metadata } from 'next'
 
@@ -111,6 +112,7 @@ export default async function NegozioPage({ params }: Props) {
 
   return (
     <>
+    <ShopViewTracker shopId={shop.id} />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <div className="max-w-3xl mx-auto px-4 py-6">
       <Link href="/negozi" className="inline-flex items-center gap-1 text-muted text-body-sm hover:text-sienna mb-4 transition-colors">
