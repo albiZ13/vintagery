@@ -152,6 +152,12 @@ export default function ImpostazioniPage() {
   const [savedProfile,  setSavedProfile]  = useState(false)
   const [profileError,  setProfileError]  = useState<string | null>(null)
 
+  // Account / email
+  const [newEmail,    setNewEmail]    = useState('')
+  const [savingEmail, setSavingEmail] = useState(false)
+  const [savedEmail,  setSavedEmail]  = useState(false)
+  const [emailError,  setEmailError]  = useState<string | null>(null)
+
   // Account / password
   const [pwNew,     setPwNew]     = useState('')
   const [pwConfirm, setPwConfirm] = useState('')
@@ -282,15 +288,41 @@ export default function ImpostazioniPage() {
     setTimeout(() => setSavedProfile(false), 3000)
   }
 
+  async function saveEmail(e: React.FormEvent) {
+    e.preventDefault()
+    setEmailError(null)
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      setEmailError('Inserisci un indirizzo email valido.'); return
+    }
+    setSavingEmail(true)
+    const res = await fetch('/api/change-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newEmail }),
+    })
+    const data = await res.json()
+    setSavingEmail(false)
+    if (!res.ok) { setEmailError(data.error ?? 'Errore durante il salvataggio.'); return }
+    setUserEmail(newEmail)
+    setNewEmail('')
+    setSavedEmail(true)
+    setTimeout(() => setSavedEmail(false), 3000)
+  }
+
   async function savePassword(e: React.FormEvent) {
     e.preventDefault()
     setPwError(null)
     if (!pwNew || pwNew.length < 8) { setPwError('La nuova password deve avere almeno 8 caratteri.'); return }
     if (pwNew !== pwConfirm) { setPwError('Le password non coincidono.'); return }
     setSavingPw(true)
-    const { error } = await supabase.auth.updateUser({ password: pwNew })
+    const res = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwNew }),
+    })
+    const data = await res.json()
     setSavingPw(false)
-    if (error) { setPwError(error.message); return }
+    if (!res.ok) { setPwError(data.error ?? 'Errore durante il salvataggio.'); return }
     setPwNew(''); setPwConfirm('')
     setSavedPw(true)
     setTimeout(() => setSavedPw(false), 3000)
@@ -604,17 +636,43 @@ export default function ImpostazioniPage() {
           {/* ── ACCOUNT ──────────────────────────────────── */}
           {tab === 'account' && (
             <div className="space-y-5">
-              <SectionCard title="Indirizzo email" description="L'email associata al tuo account Vintagery.">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 flex items-center gap-2.5 px-3 py-2.5 bg-cream rounded-lg border border-border text-sm text-espresso">
+              <SectionCard title="Indirizzo email" description="L'email con cui accedi a Vintagery.">
+                <form onSubmit={saveEmail} className="space-y-3">
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 bg-cream rounded-lg border border-border text-sm text-espresso">
                     <Mail size={14} className="text-muted flex-shrink-0" />
-                    {userEmail}
+                    <span className="flex-1">{userEmail}</span>
                   </div>
-                </div>
-                <p className="text-[11px] text-muted mt-2.5">
-                  Per cambiare email scrivi a{' '}
-                  <a href="mailto:info@vintagery.it" className="text-sienna hover:underline">info@vintagery.it</a>.
-                </p>
+                  <div>
+                    <FieldLabel optional>Nuova email</FieldLabel>
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={e => { setNewEmail(e.target.value); setEmailError(null) }}
+                      className="input"
+                      placeholder="nuova@email.it"
+                      autoComplete="email"
+                    />
+                  </div>
+                  {emailError && (
+                    <p className="text-red-600 text-xs flex items-center gap-1.5" role="alert">
+                      <AlertCircle size={12} />{emailError}
+                    </p>
+                  )}
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={savingEmail || !newEmail}
+                      className="btn-primary flex items-center gap-2 px-5 py-2 text-sm disabled:opacity-40"
+                    >
+                      {savingEmail
+                        ? <><Loader2 size={14} className="animate-spin" /> Salvataggio...</>
+                        : savedEmail
+                          ? <><BadgeCheck size={14} /> Aggiornata</>
+                          : <><Save size={14} /> Aggiorna email</>
+                      }
+                    </button>
+                  </div>
+                </form>
               </SectionCard>
 
               <SectionCard title="Account collegati" description="Puoi usare Google per accedere più velocemente.">
