@@ -1,20 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Send, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { Send, CheckCircle2, Loader2, AlertCircle, MapPin, Globe, Instagram, Calendar, RefreshCw, FileText, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { ITALIAN_REGIONS } from '@/types'
-import type { Metadata } from 'next'
 
 const EVENT_TYPES = [
-  { value: 'mercatino',     label: 'Mercatino vintage / usato' },
-  { value: 'antiquariato',  label: 'Fiera di antiquariato' },
-  { value: 'vinokilo',      label: 'Kilo vintage' },
-  { value: 'svuotacantina', label: 'Svuotacantina' },
-  { value: 'brand_sale',    label: 'Brand sale / svendita' },
-  { value: 'vinili',        label: 'Vinili & fumetti' },
+  { value: 'mercatino',     label: 'Mercatino vintage',    emoji: '🛍',  desc: 'Usato, vintage, seconda mano' },
+  { value: 'antiquariato',  label: 'Antiquariato',         emoji: '🏺',  desc: 'Fiere e mercati d\'epoca' },
+  { value: 'vinokilo',      label: 'Kilo vintage',         emoji: '⚖️',  desc: 'Vendita al chilo' },
+  { value: 'svuotacantina', label: 'Svuotacantina',        emoji: '📦',  desc: 'Privati e garage sale' },
+  { value: 'brand_sale',    label: 'Brand sale',           emoji: '🏷️',  desc: 'Svendite e sample sale' },
+  { value: 'vinili',        label: 'Vinili & fumetti',     emoji: '🎵',  desc: 'Dischi, libri, collectibles' },
 ]
 
 const FREQUENCY_OPTIONS = [
@@ -25,23 +23,42 @@ const FREQUENCY_OPTIONS = [
   { value: 'annuale',      label: 'Una volta l\'anno' },
 ]
 
-export default function ProponiMercatinoPage() {
-  const router = useRouter()
+function SectionLabel({ icon: Icon, children }: { icon: any; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border">
+      <Icon size={13} className="text-gold" />
+      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{children}</span>
+    </div>
+  )
+}
 
-  const [name, setName]             = useState('')
-  const [city, setCity]             = useState('')
-  const [region, setRegion]         = useState('')
-  const [address, setAddress]       = useState('')
-  const [website, setWebsite]       = useState('')
-  const [instagram, setInstagram]   = useState('')
-  const [schedule, setSchedule]     = useState('')
-  const [frequency, setFrequency]   = useState('')
+function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
+        {label}
+        {optional && <span className="ml-1.5 text-muted font-normal normal-case">— opzionale</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+export default function ProponiMercatinoPage() {
+  const [name, setName]               = useState('')
+  const [city, setCity]               = useState('')
+  const [region, setRegion]           = useState('')
+  const [address, setAddress]         = useState('')
+  const [website, setWebsite]         = useState('')
+  const [instagram, setInstagram]     = useState('')
+  const [schedule, setSchedule]       = useState('')
+  const [frequency, setFrequency]     = useState('')
   const [description, setDescription] = useState('')
-  const [eventType, setEventType]   = useState('mercatino')
-  const [email, setEmail]           = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone]             = useState(false)
-  const [error, setError]           = useState<string | null>(null)
+  const [eventType, setEventType]     = useState('mercatino')
+  const [email, setEmail]             = useState('')
+  const [submitting, setSubmitting]   = useState(false)
+  const [done, setDone]               = useState(false)
+  const [error, setError]             = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,11 +68,9 @@ export default function ProponiMercatinoPage() {
     }
     setSubmitting(true)
     setError(null)
-
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-
       const { error: err } = await supabase.from('market_proposals').insert({
         name:        name.trim(),
         city:        city.trim(),
@@ -70,180 +85,198 @@ export default function ProponiMercatinoPage() {
         email:       email.trim()    || user?.email || null,
         user_id:     user?.id        ?? null,
       })
-
       if (err) throw err
       setDone(true)
-    } catch (err) {
+    } catch {
       setError('Errore durante l\'invio. Riprova tra qualche momento.')
     } finally {
       setSubmitting(false)
     }
   }
 
+  function resetForm() {
+    setDone(false); setName(''); setCity(''); setRegion(''); setAddress('')
+    setWebsite(''); setInstagram(''); setSchedule(''); setFrequency('')
+    setDescription(''); setEmail(''); setEventType('mercatino')
+  }
+
   if (done) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-          <CheckCircle2 size={32} className="text-green-600" />
-        </div>
-        <h1 className="font-serif text-2xl font-bold text-espresso mb-2">Proposta inviata!</h1>
-        <p className="text-muted text-sm max-w-xs mx-auto mb-8">
-          Grazie per il contributo. Valuteremo la tua proposta e, se approvata, apparirà su Vintagery.
-        </p>
-        <div className="flex items-center justify-center gap-3">
-          <Link href="/mercatini" className="btn-primary px-6 py-2.5">Torna ai mercatini</Link>
-          <button onClick={() => { setDone(false); setName(''); setCity(''); setRegion(''); setAddress(''); setWebsite(''); setInstagram(''); setSchedule(''); setFrequency(''); setDescription(''); setEmail('') }}
-            className="btn-outline px-6 py-2.5">
-            Proponi un altro
-          </button>
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-gradient-to-br from-gold/20 to-gold/5 border border-gold/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={36} className="text-gold" />
+          </div>
+          <h1 className="font-serif text-3xl font-bold text-espresso mb-3">Grazie!</h1>
+          <p className="text-muted text-[15px] leading-relaxed max-w-xs mx-auto mb-8">
+            La tua segnalazione è arrivata. La valutiamo e, se tutto è a posto, il mercatino apparirà su Vintagery.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Link href="/mercatini" className="btn-primary px-6 py-2.5">Torna ai mercatini</Link>
+            <button onClick={resetForm} className="btn-outline px-6 py-2.5">Segnala un altro</button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-espresso mb-1">Proponi un mercatino</h1>
-        <p className="text-muted text-sm">
-          Conosci un mercatino, una fiera o un evento vintage non ancora su Vintagery?
-          Segnalacelo — lo valutiamo e, se tutto è a posto, lo aggiungiamo.
-        </p>
+    <div className="min-h-screen bg-parchment">
+
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
+      <div className="bg-espresso relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #C4A030 0%, transparent 60%), radial-gradient(circle at 80% 20%, #B53A1E 0%, transparent 50%)' }} />
+        <div className="relative max-w-3xl mx-auto px-4 py-14 text-center">
+          <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 rounded-full px-4 py-1.5 mb-6">
+            <MapPin size={11} className="text-gold" />
+            <span className="text-[11px] font-semibold text-gold uppercase tracking-[0.15em]">Segnalazione mercatino</span>
+          </div>
+          <h1 className="font-serif text-4xl md:text-5xl font-bold text-parchment mb-4 leading-tight">
+            Conosci un mercatino<br />
+            <span className="text-gold">non ancora su Vintagery?</span>
+          </h1>
+          <p className="text-parchment/60 text-[15px] max-w-md mx-auto leading-relaxed">
+            Segnalacelo in due minuti. Se è verificabile, lo aggiungiamo alla directory e lo vedono tutti.
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-border rounded-xl p-6 shadow-soft space-y-5">
+      {/* ── FORM ─────────────────────────────────────────────────────────── */}
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        <form onSubmit={handleSubmit} className="space-y-8">
 
-        {/* Tipo */}
-        <div>
-          <label htmlFor="event-type" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-            Tipo *
-          </label>
-          <select id="event-type" value={eventType} onChange={e => setEventType(e.target.value)} className="input">
-            {EVENT_TYPES.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Nome */}
-        <div>
-          <label htmlFor="name" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-            Nome del mercatino *
-          </label>
-          <input id="name" type="text" required value={name} onChange={e => setName(e.target.value)}
-            className="input" placeholder="es. Mercatino dell'Antiquariato di Ferrara" maxLength={150} />
-        </div>
-
-        {/* Città + Regione */}
-        <div className="grid grid-cols-2 gap-3">
+          {/* Tipo evento */}
           <div>
-            <label htmlFor="city" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-              Città *
-            </label>
-            <input id="city" type="text" required value={city} onChange={e => setCity(e.target.value)}
-              className="input" placeholder="es. Ferrara" maxLength={80} />
-          </div>
-          <div>
-            <label htmlFor="region" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-              Regione *
-            </label>
-            <select id="region" required value={region} onChange={e => setRegion(e.target.value)} className="input">
-              <option value="">Seleziona...</option>
-              {ITALIAN_REGIONS.map(r => (
-                <option key={r} value={r}>{r}</option>
+            <SectionLabel icon={FileText}>Che tipo di evento è?</SectionLabel>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {EVENT_TYPES.map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setEventType(t.value)}
+                  className={`relative text-left p-3.5 rounded-xl border-2 transition-all ${
+                    eventType === t.value
+                      ? 'border-gold bg-gold/5 shadow-[0_0_0_1px_rgba(196,160,48,0.2)]'
+                      : 'border-border bg-white hover:border-border-strong hover:shadow-sm'
+                  }`}
+                >
+                  <span className="text-2xl leading-none block mb-1.5">{t.emoji}</span>
+                  <p className={`text-[12px] font-semibold leading-snug ${eventType === t.value ? 'text-espresso' : 'text-coffee'}`}>
+                    {t.label}
+                  </p>
+                  <p className="text-[10px] text-muted mt-0.5 leading-snug">{t.desc}</p>
+                  {eventType === t.value && (
+                    <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-gold" />
+                  )}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
-        </div>
 
-        {/* Indirizzo */}
-        <div>
-          <label htmlFor="address" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-            Indirizzo <span className="text-muted font-normal normal-case">— opzionale</span>
-          </label>
-          <input id="address" type="text" value={address} onChange={e => setAddress(e.target.value)}
-            className="input" placeholder="es. Piazza Castello, Ferrara" maxLength={200} />
-        </div>
+          {/* Informazioni base */}
+          <div className="bg-white border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+            <SectionLabel icon={MapPin}>Dove si trova</SectionLabel>
 
-        {/* Cadenza */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="frequency" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-              Con quale frequenza
-            </label>
-            <select id="frequency" value={frequency} onChange={e => setFrequency(e.target.value)} className="input">
-              {FREQUENCY_OPTIONS.map(f => (
-                <option key={f.value} value={f.value}>{f.label}</option>
-              ))}
-            </select>
+            <Field label="Nome del mercatino *">
+              <input type="text" required value={name} onChange={e => setName(e.target.value)}
+                className="input" placeholder="es. Mercatino dell'Antiquariato di Ferrara" maxLength={150} />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Città *">
+                <input type="text" required value={city} onChange={e => setCity(e.target.value)}
+                  className="input" placeholder="es. Ferrara" maxLength={80} />
+              </Field>
+              <Field label="Regione *">
+                <select required value={region} onChange={e => setRegion(e.target.value)} className="input">
+                  <option value="">Seleziona...</option>
+                  {ITALIAN_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </Field>
+            </div>
+
+            <Field label="Indirizzo" optional>
+              <input type="text" value={address} onChange={e => setAddress(e.target.value)}
+                className="input" placeholder="es. Piazza Castello" maxLength={200} />
+            </Field>
           </div>
-          <div>
-            <label htmlFor="schedule" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-              Quando si tiene <span className="text-muted font-normal normal-case">— opz.</span>
-            </label>
-            <input id="schedule" type="text" value={schedule} onChange={e => setSchedule(e.target.value)}
-              className="input" placeholder="es. Prima domenica del mese" maxLength={200} />
+
+          {/* Quando si tiene */}
+          <div className="bg-white border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+            <SectionLabel icon={Calendar}>Quando si tiene</SectionLabel>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Frequenza">
+                <select value={frequency} onChange={e => setFrequency(e.target.value)} className="input">
+                  {FREQUENCY_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Quando esattamente" optional>
+                <input type="text" value={schedule} onChange={e => setSchedule(e.target.value)}
+                  className="input" placeholder="es. Prima domenica del mese" maxLength={200} />
+              </Field>
+            </div>
           </div>
-        </div>
 
-        {/* Website + Instagram */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="website" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-              Sito web <span className="text-muted font-normal normal-case">— opz.</span>
-            </label>
-            <input id="website" type="url" value={website} onChange={e => setWebsite(e.target.value)}
-              className="input" placeholder="https://..." maxLength={300} />
+          {/* Online */}
+          <div className="bg-white border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+            <SectionLabel icon={Globe}>Riferimenti online</SectionLabel>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Sito web" optional>
+                <input type="url" value={website} onChange={e => setWebsite(e.target.value)}
+                  className="input" placeholder="https://..." maxLength={300} />
+              </Field>
+              <Field label="Instagram" optional>
+                <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)}
+                  className="input" placeholder="@nomeutente" maxLength={60} />
+              </Field>
+            </div>
           </div>
-          <div>
-            <label htmlFor="instagram" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-              Instagram <span className="text-muted font-normal normal-case">— opz.</span>
-            </label>
-            <input id="instagram" type="text" value={instagram} onChange={e => setInstagram(e.target.value)}
-              className="input" placeholder="@nomeutente" maxLength={60} />
+
+          {/* Note + contatto */}
+          <div className="bg-white border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+            <SectionLabel icon={FileText}>Note e contatto</SectionLabel>
+
+            <Field label="Note aggiuntive" optional>
+              <textarea value={description} onChange={e => setDescription(e.target.value)}
+                className="input resize-none" rows={3}
+                placeholder="Tipo di merce, area espositiva, accesso, parcheggio…" maxLength={500} />
+            </Field>
+
+            <Field label="La tua email" optional>
+              <div className="relative">
+                <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  className="input pl-8" placeholder="tu@email.it — per ricevere aggiornamenti" maxLength={150} />
+              </div>
+            </Field>
           </div>
-        </div>
 
-        {/* Descrizione */}
-        <div>
-          <label htmlFor="description" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-            Note aggiuntive <span className="text-muted font-normal normal-case">— opzionale</span>
-          </label>
-          <textarea id="description" value={description} onChange={e => setDescription(e.target.value)}
-            className="input resize-none" rows={3}
-            placeholder="Qualsiasi informazione utile: tipo di merce, area espositiva, accesso..." maxLength={500} />
-        </div>
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3" role="alert">
+              <AlertCircle size={14} className="flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        {/* Email di contatto */}
-        <div>
-          <label htmlFor="email" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-            La tua email <span className="text-muted font-normal normal-case">— opzionale, per aggiornamenti</span>
-          </label>
-          <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="input" placeholder="tu@email.it" maxLength={150} />
-        </div>
-
-        {error && (
-          <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2.5" role="alert">
-            <AlertCircle size={14} className="flex-shrink-0" />
-            <span>{error}</span>
+          <div className="space-y-3">
+            <button type="submit" disabled={submitting}
+              className="w-full flex items-center justify-center gap-2 bg-espresso hover:bg-coffee text-parchment font-semibold text-[14px] py-3.5 rounded-xl transition-colors shadow-[0_2px_12px_rgba(15,32,64,0.18)]">
+              {submitting
+                ? <><Loader2 size={16} className="animate-spin" /> Invio in corso…</>
+                : <><Send size={15} /> Invia segnalazione</>}
+            </button>
+            <p className="text-[11px] text-muted text-center">
+              Inviando accetti la nostra{' '}
+              <Link href="/privacy" className="text-sienna hover:underline">privacy policy</Link>.
+              Non usiamo questi dati per altri scopi.
+            </p>
           </div>
-        )}
 
-        <button type="submit" disabled={submitting}
-          className="btn-primary w-full flex items-center justify-center gap-2 !py-3">
-          {submitting
-            ? <><Loader2 size={16} className="animate-spin" /> Invio in corso...</>
-            : <><Send size={16} /> Invia proposta</>
-          }
-        </button>
-
-        <p className="text-[11px] text-muted text-center">
-          Inviando accetti la nostra{' '}
-          <Link href="/privacy" className="text-sienna hover:underline">privacy policy</Link>.
-          Non usiamo questi dati per altri scopi.
-        </p>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

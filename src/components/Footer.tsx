@@ -21,10 +21,10 @@ export default function Footer() {
             La directory dei mercatini e negozi vintage in Italia.
           </p>
           <a
-            href="mailto:ciao@vintagery.it"
+            href="mailto:info@vintagery.it"
             className="text-caption text-gold hover:text-gold/80 transition-colors block mb-4"
           >
-            ciao@vintagery.it
+            info@vintagery.it
           </a>
           <a
             href="https://www.tiktok.com/@vintagery_"
