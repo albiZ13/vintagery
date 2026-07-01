@@ -1,4 +1,4 @@
-export const revalidate = 86400
+export const revalidate = 3600
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -9,7 +9,8 @@ import {
 import { createServerClient } from '@/lib/supabase-server'
 import MarketCard from '@/components/MarketCard'
 import AddToCalendar from '@/components/AddToCalendar'
-import { REGION_CONFIG, AREA_PATTERNS, DEFAULT_CONFIG } from '@/lib/regions-config'
+import MarketReviews, { type MarketReview } from '@/components/MarketReviews'
+import { REGION_CONFIG, DEFAULT_CONFIG } from '@/lib/regions-config'
 import { fetchWeatherForDates, wmoInfo } from '@/lib/weather'
 import type { Market } from '@/types'
 import type { Metadata } from 'next'
@@ -47,10 +48,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MercatinoPage({ params }: Props) {
   const supabase = createServerClient()
 
-  const [{ data: market }, { data: related }] = await Promise.all([
+  const authResult = await supabase.auth.getUser()
+  const currentUserId = authResult.data.user?.id ?? null
+  const isEmailVerified = !!authResult.data.user?.email_confirmed_at
+
+  const [{ data: market }, { data: related }, { data: reviewsRaw }, { data: likedRaw }] = await Promise.all([
     supabase.from('markets').select(MARKET_COLS).eq('id', params.id).single(),
     supabase.from('markets').select(MARKET_COLS).neq('id', params.id).limit(3),
+    supabase
+      .from('reviews')
+      .select('id,user_id,rating,title,body,created_at,likes_count,profiles(username,full_name)')
+      .eq('target_type', 'market')
+      .eq('target_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    currentUserId
+      ? supabase.from('review_likes').select('review_id').eq('user_id', currentUserId)
+      : Promise.resolve({ data: [] as { review_id: string }[] }),
   ])
+
+  const reviews = (reviewsRaw ?? []) as unknown as MarketReview[]
+  const userLikedIds = (likedRaw ?? []).map((r: { review_id: string }) => r.review_id)
 
   if (!market) notFound()
 
@@ -68,9 +86,8 @@ export default async function MercatinoPage({ params }: Props) {
     }
   }
 
-  const cfg     = REGION_CONFIG[market.region] ?? DEFAULT_CONFIG
-  const pattern = AREA_PATTERNS[cfg.area] ?? AREA_PATTERNS.default
-  const [g1, g2] = cfg.gradient
+  const cfg = REGION_CONFIG[market.region] ?? DEFAULT_CONFIG
+  const [g1, g2, g3] = cfg.gradient
   const accent  = cfg.accent
 
   const isFree    = /gratuito|gratis|free/i.test(market.price_info ?? '')
@@ -136,11 +153,7 @@ export default async function MercatinoPage({ params }: Props) {
       {/* ── HERO ────────────────────────────────────────────────── */}
       <div
         className="relative overflow-hidden"
-        style={{
-          background:          `linear-gradient(135deg, ${g1}, ${g2})`,
-          backgroundImage:     `${pattern}, linear-gradient(135deg, ${g1}, ${g2})`,
-          backgroundBlendMode: 'overlay, normal',
-        }}
+        style={{ background: `linear-gradient(135deg, ${g1}, ${g2}, ${g3})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/40" />
 
@@ -343,6 +356,17 @@ export default async function MercatinoPage({ params }: Props) {
             </a>
           )}
         </div>
+
+        {/* ── Recensioni ──────────────────────────────────────── */}
+        <MarketReviews
+          marketId={market.id}
+          avgRating={Number(market.avg_rating ?? 0)}
+          reviewCount={Number(market.review_count ?? 0)}
+          initialReviews={reviews}
+          currentUserId={currentUserId}
+          userLikedIds={[]}
+          accent={accent}
+        />
 
         {/* Altri mercati */}
         {related && related.length > 0 && (
