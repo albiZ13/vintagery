@@ -9,12 +9,13 @@ import {
   Save, AtSign, User, Loader2, BadgeCheck, AlertCircle,
   Bell, Trash2, Camera, MapPin, Lock, Shield, Smartphone,
   Eye, EyeOff, Download, Mail, Key, ExternalLink, ChevronRight,
-  Globe, LayoutDashboard,
+  Globe, LayoutDashboard, ImagePlus,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cn, avatarColor } from '@/lib/utils'
 import { ITALIAN_REGIONS } from '@/types'
+import { prepareImage } from '@/lib/image-utils'
 
 type Tab = 'profilo' | 'account' | 'notifiche' | 'privacy' | 'app' | 'pericolo'
 
@@ -124,8 +125,11 @@ export default function ImpostazioniPage() {
   const [bio, setBio]             = useState('')
   const [region, setRegion]       = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [coverUrl, setCoverUrl]   = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [coverUploading,  setCoverUploading]  = useState(false)
   const avatarFileRef = useRef<HTMLInputElement>(null)
+  const coverFileRef  = useRef<HTMLInputElement>(null)
   const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'ok'|'taken'>('idle')
   const [originalUsername, setOriginalUsername] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
@@ -173,6 +177,7 @@ export default function ImpostazioniPage() {
         setBio(profile.bio ?? '')
         setRegion(profile.region ?? '')
         setAvatarUrl(profile.avatar_url ?? '')
+        setCoverUrl(profile.cover_url ?? '')
         setRole(profile.role ?? 'user')
         setNotifPrefs({
           notify_upcoming_events: profile.notify_upcoming_events ?? true,
@@ -196,19 +201,47 @@ export default function ImpostazioniPage() {
   }, [originalUsername])
 
   async function handleAvatarUpload(file: File) {
-    if (!userId || !file.type.startsWith('image/')) return
+    if (!userId) return
     setAvatarUploading(true)
-    const ext  = file.name.split('.').pop() ?? 'jpg'
-    const path = `${userId}/avatar.${ext}`
-    const { error: uploadErr } = await supabase.storage
-      .from('avatars').upload(path, file, { upsert: true, contentType: file.type })
-    if (!uploadErr) {
+    setProfileError(null)
+    try {
+      const ready = await prepareImage(file)
+      const ext   = ready.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path  = `${userId}/avatar.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('avatars').upload(path, ready, { upsert: true, contentType: ready.type })
+      if (upErr) { setProfileError(`Errore upload: ${upErr.message}`); return }
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       const url = `${publicUrl}?t=${Date.now()}`
       await supabase.from('profiles').update({ avatar_url: url }).eq('id', userId)
       setAvatarUrl(url)
+    } catch (e) {
+      setProfileError(e instanceof Error ? e.message : 'Errore upload foto.')
+    } finally {
+      setAvatarUploading(false)
     }
-    setAvatarUploading(false)
+  }
+
+  async function handleCoverUpload(file: File) {
+    if (!userId) return
+    setCoverUploading(true)
+    setProfileError(null)
+    try {
+      const ready = await prepareImage(file)
+      const ext   = ready.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path  = `${userId}/cover.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('avatars').upload(path, ready, { upsert: true, contentType: ready.type })
+      if (upErr) { setProfileError(`Errore upload copertina: ${upErr.message}`); return }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = `${publicUrl}?t=${Date.now()}`
+      await supabase.from('profiles').update({ cover_url: url }).eq('id', userId)
+      setCoverUrl(url)
+    } catch (e) {
+      setProfileError(e instanceof Error ? e.message : 'Errore upload copertina.')
+    } finally {
+      setCoverUploading(false)
+    }
   }
 
   async function saveProfile(e: React.FormEvent) {
@@ -221,7 +254,9 @@ export default function ImpostazioniPage() {
     const { error: err } = await supabase.from('profiles').update({
       username, first_name: firstName, last_name: lastName,
       full_name: `${firstName} ${lastName}`,
-      bio: bio || null, region: region || null, avatar_url: avatarUrl || null,
+      bio: bio || null, region: region || null,
+      avatar_url: avatarUrl || null,
+      cover_url:  coverUrl  || null,
     }).eq('id', userId)
     setSavingProfile(false)
     if (err) { setProfileError('Errore nel salvataggio.'); return }
@@ -454,37 +489,64 @@ export default function ImpostazioniPage() {
                 </select>
               </SectionCard>
 
-              <SectionCard title="Foto profilo" description="JPG, PNG o WebP · max 5 MB.">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer group"
-                    style={{ boxShadow: '0 0 0 2px var(--border)' }}
-                    onClick={() => avatarFileRef.current?.click()}
-                  >
-                    {avatarUrl ? (
-                      <Image src={avatarUrl} alt="" fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center font-serif font-bold text-white text-lg"
-                        style={{ background: color }}>{initials}</div>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      {avatarUploading ? <Loader2 size={14} className="text-white animate-spin" /> : <Camera size={14} className="text-white" />}
+              <SectionCard title="Foto e copertina" description="JPG, PNG, WebP o HEIC · max 10 MB.">
+                {/* Cover */}
+                <div
+                  className="relative h-28 rounded-xl overflow-hidden cursor-pointer group mb-4 -mx-0"
+                  style={!coverUrl ? { background: `linear-gradient(135deg, ${color}55 0%, ${color}22 100%)` } : undefined}
+                  onClick={() => coverFileRef.current?.click()}
+                >
+                  {coverUrl && <Image src={coverUrl} alt="Copertina" fill className="object-cover" />}
+                  <div className="absolute inset-0 bg-espresso/0 group-hover:bg-espresso/25 transition-colors flex items-center justify-center">
+                    <div className="flex items-center gap-2 bg-espresso/60 text-parchment text-[11px] font-semibold px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      {coverUploading
+                        ? <><Loader2 size={12} className="animate-spin" /> Caricamento...</>
+                        : <><ImagePlus size={12} />{coverUrl ? 'Cambia copertina' : 'Aggiungi copertina'}</>
+                      }
                     </div>
                   </div>
-                  <div>
-                    <button type="button" onClick={() => avatarFileRef.current?.click()}
+                </div>
+
+                {/* Avatar */}
+                <div className="flex items-center gap-4">
+                  <div className="relative w-14 h-14 flex-shrink-0">
+                    <div
+                      className="relative w-14 h-14 rounded-full ring-2 ring-border overflow-hidden cursor-pointer"
+                      onClick={() => avatarFileRef.current?.click()}
+                    >
+                      {avatarUrl ? (
+                        <Image src={avatarUrl} alt="" fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-serif font-bold text-white text-lg"
+                          style={{ background: color }}>{initials}</div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => avatarFileRef.current?.click()}
                       disabled={avatarUploading}
-                      className="text-[13px] font-semibold text-sienna hover:underline disabled:opacity-50 flex items-center gap-1.5">
-                      {avatarUploading ? <><Loader2 size={12} className="animate-spin" /> Caricamento…</> : 'Carica foto'}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-espresso text-parchment rounded-full flex items-center justify-center hover:bg-sienna transition-colors disabled:opacity-50"
+                    >
+                      {avatarUploading ? <Loader2 size={10} className="animate-spin" /> : <Camera size={11} />}
                     </button>
-                    {avatarUrl && !avatarUploading && (
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-espresso">Foto profilo</p>
+                    <button type="button" onClick={() => avatarFileRef.current?.click()}
+                      className="text-[11px] text-sienna hover:underline">
+                      {avatarUrl ? 'Cambia foto' : 'Carica foto'}
+                    </button>
+                    {avatarUrl && (
                       <button type="button" onClick={() => setAvatarUrl('')}
-                        className="text-[11px] text-muted hover:text-rust mt-0.5 block">
-                        Rimuovi foto
+                        className="ml-3 text-[11px] text-muted hover:text-rust">
+                        Rimuovi
                       </button>
                     )}
                   </div>
                 </div>
+
+                <input ref={coverFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); e.target.value = '' }} />
               </SectionCard>
 
               {profileError && (

@@ -158,7 +158,7 @@ export default function ProfileClient({
           <div className="flex items-center gap-2 pb-1">
             {isOwn ? (
               <Link
-                href="/profilo/modifica"
+                href="/impostazioni"
                 className="inline-flex items-center gap-1.5 bg-white border border-border text-espresso font-semibold rounded-full px-4 py-2 text-[13px] hover:border-espresso/40 transition-colors shadow-sm"
               >
                 <Settings size={13} /> Modifica profilo
