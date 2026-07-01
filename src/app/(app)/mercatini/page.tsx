@@ -97,6 +97,7 @@ async function TuttiIContenuti({ searchParams }: Props) {
     .from('markets')
     .select(MARKET_COLS)
     .or(`frequency.in.(settimanale,mensile),and(next_date.gte.${startOfMonth},next_date.lte.${endOfMonth})`)
+    .or(`active_months.is.null,active_months.cs.{${month}}`)
     .order('is_featured', { ascending: false })
     .order('avg_rating',  { ascending: false })
   if (regionFilter !== 'all') marketsQuery = marketsQuery.eq('region', regionFilter)

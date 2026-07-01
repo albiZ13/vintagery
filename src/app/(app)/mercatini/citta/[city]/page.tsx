@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const MARKET_COLS = 'id,name,description,city,region,address,lat,lng,website,instagram,phone,email,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count,event_dates,organizer_id,organizer_name,created_at'
+const MARKET_COLS = 'id,name,description,city,region,address,lat,lng,website,instagram,phone,email,schedule_notes,next_date,frequency,categories,image_url,poster_url,is_featured,is_verified,avg_rating,review_count,event_dates,organizer_id,organizer_name,created_at,start_time,end_time,price_info,tips'
 const EVENT_COLS  = 'id,name,description,event_type,city,region,address,start_date,end_date,start_time,end_time,website,instagram,price_info,organizer,source,is_verified,is_featured,is_recurring,categories,tags,tips'
 
 export default async function CityPage({ params }: Props) {
@@ -47,7 +47,8 @@ export default async function CityPage({ params }: Props) {
   const supabase = createServerClient()
 
   const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr    = today.toISOString().split('T')[0]
+  const currentMonth = today.getMonth() + 1
   const in90days = new Date(today)
   in90days.setDate(today.getDate() + 90)
   const in90daysStr = in90days.toISOString().split('T')[0]
@@ -58,6 +59,7 @@ export default async function CityPage({ params }: Props) {
       .select(MARKET_COLS)
       .ilike('city', cityName)
       .or('frequency.in.(settimanale,mensile),next_date.not.is.null')
+      .or(`active_months.is.null,active_months.cs.{${currentMonth}}`)
       .order('is_featured', { ascending: false })
       .limit(20),
     supabase
@@ -77,7 +79,22 @@ export default async function CityPage({ params }: Props) {
     notFound()
   }
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type':    'ItemList',
+    name:       `Mercatini vintage a ${cityName}`,
+    url:        `${SITE_URL}/mercatini/citta/${params.city}`,
+    itemListElement: (markets ?? []).map((m: Market, i: number) => ({
+      '@type':    'ListItem',
+      position:   i + 1,
+      name:       m.name,
+      url:        `${SITE_URL}/mercatini/${m.id}`,
+    })),
+  }
+
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <div className="max-w-5xl mx-auto px-4 py-10">
 
       {/* Back */}
@@ -139,5 +156,6 @@ export default async function CityPage({ params }: Props) {
       </div>
 
     </div>
+    </>
   )
 }

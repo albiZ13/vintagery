@@ -19,13 +19,11 @@ export const metadata: Metadata = {
     title: 'Vintagery — Mercatini & Negozi Vintage in Italia',
     description: 'La mappa del vintage italiano. Mercatini, fiere di antiquariato, negozi vintage in tutte le regioni.',
     url: '/',
-    images: [{ url: '/og-default.jpg', width: 1200, height: 630, alt: 'Vintagery' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Vintagery — Mercatini & Negozi Vintage in Italia',
     description: 'La mappa del vintage italiano. Mercatini, fiere, negozi.',
-    images: ['/og-default.jpg'],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   manifest: '/manifest.json',
@@ -55,7 +53,7 @@ const organizationSchema = {
   name: 'Vintagery',
   url: SITE_URL,
   logo: `${SITE_URL}/icon-192.png`,
-  sameAs: [],
+  sameAs: ['https://www.tiktok.com/@vintagery_'],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

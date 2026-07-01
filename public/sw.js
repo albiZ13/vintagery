@@ -1,8 +1,8 @@
-// Vintagery Service Worker — v1
+// Vintagery Service Worker — v2
 // Strategy: Cache-first for static assets, Network-first for API/pages
 
-const CACHE_NAME   = 'vintagery-v1'
-const STATIC_CACHE = 'vintagery-static-v1'
+const CACHE_NAME   = 'vintagery-v2'
+const STATIC_CACHE = 'vintagery-static-v2'
 
 const PRECACHE = [
   '/',
@@ -75,4 +75,31 @@ self.addEventListener('fetch', event => {
     )
     return
   }
+})
+
+// Push: show notification
+self.addEventListener('push', event => {
+  let data = { title: 'Vintagery', body: '', url: '/mercatini', icon: '/icon-192.png', badge: '/icon-192.png' }
+  try { if (event.data) data = { ...data, ...event.data.json() } } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:  data.body  || undefined,
+      icon:  data.icon,
+      badge: data.badge,
+      data:  { url: data.url },
+    })
+  )
+})
+
+// Notification click: open URL
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const url = event.notification.data?.url ?? '/mercatini'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+      const match = cs.find(c => c.url.includes(self.location.origin))
+      if (match) return match.focus().then(c => c.navigate(url))
+      return clients.openWindow(url)
+    })
+  )
 })

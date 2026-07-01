@@ -13,34 +13,68 @@ function toICSDate(dateStr: string, timeStr?: string | null): string {
     : dateStr.replace(/-/g, '')
 }
 
+function isoDatePlusOne(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
+  const id     = searchParams.get('id')
+  const source = searchParams.get('source') ?? 'event'
 
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
   const supabase = createServerClient()
-  const { data: ev, error } = await supabase
-    .from('market_events')
-    .select('*')
-    .eq('id', id)
-    .single()
 
-  if (error || !ev) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  let ev: Record<string, any> | null = null
 
-  const dtstart = toICSDate(ev.start_date, ev.start_time)
-  const dtend   = toICSDate(ev.end_date ?? ev.start_date, ev.end_time ?? ev.start_time)
+  if (source === 'market') {
+    const { data } = await supabase
+      .from('markets')
+      .select('id,name,description,city,region,address,next_date,start_time,end_time,price_info,website,instagram,organizer_name,schedule_notes,frequency,tips')
+      .eq('id', id)
+      .single()
+    if (data) ev = {
+      ...data,
+      start_date: data.next_date,
+      organizer:  data.organizer_name,
+    }
+  } else {
+    const { data } = await supabase
+      .from('market_events')
+      .select('*')
+      .eq('id', id)
+      .single()
+    ev = data
+  }
 
-  const allDay = !ev.start_time
+  if (!ev) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const allDay   = !ev.start_time
+  const startStr = ev.start_date
+  const endStr   = ev.end_date ?? (allDay ? isoDatePlusOne(startStr) : startStr)
+
+  const dtstart = toICSDate(startStr, ev.start_time)
+  const dtend   = toICSDate(endStr, ev.end_time ?? ev.start_time)
+
   const dtStartLine = allDay ? `DTSTART;VALUE=DATE:${dtstart}` : `DTSTART:${dtstart}`
   const dtEndLine   = allDay ? `DTEND;VALUE=DATE:${dtend}`   : `DTEND:${dtend}`
 
   const location = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
+
+  const cadenza = ev.schedule_notes ?? ev.frequency ?? null
+  const instagram = ev.instagram ? `@${ev.instagram.replace(/^@/, '')}` : null
   const desc = [
     ev.description ? ev.description.split('\n')[0] : '',
-    ev.price_info  ? `Ingresso: ${ev.price_info}`  : '',
+    cadenza        ? `Cadenza: ${cadenza}`          : '',
+    ev.price_info  ? `Ingresso: ${ev.price_info}`   : '',
     ev.organizer   ? `Organizzatore: ${ev.organizer}` : '',
-    ev.website     ? `Sito: ${ev.website}` : '',
+    ev.tips        ? `Consigli: ${ev.tips}`          : '',
+    instagram      ? `Instagram: ${instagram}`       : '',
+    ev.website     ? `Sito: ${ev.website}`           : '',
+    `Vintagery: https://vintagery.it/mercatini/${ev.id}`,
   ].filter(Boolean).join('\\n')
 
   const ics = [
@@ -56,7 +90,7 @@ export async function GET(request: NextRequest) {
     `SUMMARY:${escapeICS(ev.name)}`,
     location ? `LOCATION:${escapeICS(location)}` : '',
     desc ? `DESCRIPTION:${desc}` : '',
-    ev.website ? `URL:${ev.website}` : '',
+    `URL:https://vintagery.it/mercatini/${ev.id}`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')}`,
     'END:VEVENT',
     'END:VCALENDAR',

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   // Legge dalla tabella markets i record con next_date scaduta
   const { data: stale, error } = await supabase
     .from('markets')
-    .select('id, name, next_date, schedule_notes, frequency')
+    .select('id, name, next_date, schedule_notes, frequency, active_months')
     .lt('next_date', todayStr)
     .not('schedule_notes', 'is', null)
 
@@ -39,7 +39,18 @@ export async function GET(req: NextRequest) {
   let skipped = 0
   const errors: string[] = []
 
+  const currentMonth = today.getMonth() + 1
+
   for (const market of stale) {
+    // Mercati stagionali: se il mese corrente non è attivo, azzera next_date
+    if ((market as any).active_months?.length) {
+      if (!(market as any).active_months.includes(currentMonth)) {
+        await supabase.from('markets').update({ next_date: null }).eq('id', market.id)
+        skipped++
+        continue
+      }
+    }
+
     // computeNextDate ora accetta direttamente schedule_notes
     const nextDate = computeNextDate(market.schedule_notes, today)
 

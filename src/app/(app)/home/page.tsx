@@ -80,6 +80,7 @@ export default async function HomePage() {
   const region   = profile?.region ?? null
   const now      = new Date()
   const todayStr = now.toISOString().slice(0, 10)
+  const month    = now.getMonth() + 1
   const plus10   = new Date(now); plus10.setDate(now.getDate() + 10)
   const plus10Str = plus10.toISOString().slice(0, 10)
 
@@ -91,6 +92,7 @@ export default async function HomePage() {
       .select(MARKET_COLS)
       .gte('next_date', todayStr)
       .lte('next_date', plus10Str)
+      .or(`active_months.is.null,active_months.cs.{${month}}`)
       .order('is_featured', { ascending: false })
       .order('next_date',   { ascending: true })
       .order('avg_rating',  { ascending: false })
@@ -155,6 +157,7 @@ export default async function HomePage() {
       .from('markets')
       .select(MARKET_COLS)
       .gte('next_date', todayStr)
+      .or(`active_months.is.null,active_months.cs.{${month}}`)
       .order('region')
       .order('next_date', { ascending: true })
     const byRegion: Record<string, Market> = {}

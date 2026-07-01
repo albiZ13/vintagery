@@ -217,16 +217,23 @@ export default function FeaturedMarketCard({ market, weather }: Props) {
         <div className="flex items-center gap-2 ml-auto">
           {resolvedDateStr && (
             <AddToCalendar event={{
-              id:          market.id,
-              name:        market.name,
-              start_date:  resolvedDateStr,
-              start_time:  market.start_time ?? undefined,
-              end_time:    market.end_time ?? undefined,
-              address:     market.address ?? undefined,
-              city:        market.city,
-              region:      market.region,
-              description: market.description ?? undefined,
-              price_info:  market.price_info ?? undefined,
+              id:             market.id,
+              name:           market.name,
+              start_date:     resolvedDateStr,
+              start_time:     market.start_time ?? undefined,
+              end_time:       market.end_time ?? undefined,
+              address:        market.address ?? undefined,
+              city:           market.city,
+              region:         market.region,
+              description:    market.description ?? undefined,
+              price_info:     market.price_info ?? undefined,
+              organizer:      (market as any).organizer_name ?? undefined,
+              website:        (market as any).website ?? undefined,
+              instagram:      (market as any).instagram ?? undefined,
+              schedule_notes: market.schedule_notes ?? undefined,
+              frequency:      market.frequency ?? undefined,
+              tips:           (market as any).tips ?? undefined,
+              icsTable:       'market',
             }} />
           )}
           {mapsUrl && (

@@ -50,6 +50,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  if (type === 'market_get') {
+    const { id } = body
+    if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
+    const { data } = await supabase.from('markets').select('*').eq('id', id).single()
+    return NextResponse.json({ data })
+  }
+
+  if (type === 'market_upsert') {
+    const { id, type: _, ...fields } = body as Record<string, unknown>
+    if (id) {
+      const { error } = await supabase.from('markets').update(fields).eq('id', id as string)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, id })
+    } else {
+      const { data, error } = await supabase.from('markets').insert(fields).select('id').single()
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, id: data?.id })
+    }
+  }
+
+  // ── market_events ─────────────────────────────────────────────────────────
+
+  if (type === 'delete_event') {
+    const { id } = body
+    if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
+    await supabase.from('market_events').delete().eq('id', id)
+    return NextResponse.json({ ok: true })
+  }
+
   // ── Review ────────────────────────────────────────────────────────────────
 
   if (type === 'delete_review') {

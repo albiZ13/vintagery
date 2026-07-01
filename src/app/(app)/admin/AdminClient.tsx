@@ -13,10 +13,12 @@ import {
   Trash2, Crown, Bell, Send, ChevronDown, Bot, RefreshCw,
   Radio, LayoutDashboard, Banknote, LineChart, Package,
   FileStack, ThumbsUp, UserCog, Map, MessageCircle, ChevronRight,
+  Plus, Pencil,
 } from 'lucide-react'
 import LiveSection from './LiveSection'
 import RoadmapSection from './RoadmapSection'
 import { cn } from '@/lib/utils'
+import MarketEditor, { type SavedMarket } from '@/components/admin/MarketEditor'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -57,8 +59,14 @@ interface Review {
   markets: { name: string; city: string } | null
   shops: { name: string; city: string } | null
 }
+interface EventRow {
+  id: string; name: string; city: string; region: string | null
+  event_type: string | null; source: string | null
+  start_date: string | null; is_verified: boolean; is_recurring: boolean
+  website: string | null; instagram: string | null; created_at: string
+}
 
-type Tab = 'live' | 'overview' | 'revenue' | 'growth' | 'shops' | 'markets' | 'proposals' | 'reviews' | 'feedback' | 'users' | 'notifications' | 'roadmap'
+type Tab = 'live' | 'overview' | 'revenue' | 'growth' | 'shops' | 'markets' | 'proposals' | 'reviews' | 'feedback' | 'users' | 'notifications' | 'roadmap' | 'events'
 
 const PLAN_COLORS: Record<string, string> = { premium: '#c9a84c', free: '#b8afa8', pro: '#4a7c59' }
 const CHART_COLORS = { utenti: '#1c2e4a', negozi: '#c9a84c' }
@@ -102,6 +110,7 @@ export default function AdminClient({
   stats, planBreakdown, shopsByRegion, marketsByRegion,
   growthSeries, recentShops, recentMarkets, recentUsers, recentProposals, recentReviews, topShops,
   emailMap = {}, lastScraperRun = null, aiMarketsCount = 0, feedbacks = [],
+  recentEvents = [], unverifiedEventsCount = 0,
 }: {
   stats: Stats
   planBreakdown: { plan: string; n: number }[]
@@ -118,6 +127,8 @@ export default function AdminClient({
   lastScraperRun?: string | null
   aiMarketsCount?: number
   feedbacks?: { id: string; user_id: string; body: string; status: string; created_at: string; profiles: { username: string | null; first_name: string | null; last_name: string | null } | null }[]
+  recentEvents?: EventRow[]
+  unverifiedEventsCount?: number
 }) {
   const [tab, setTab]             = useState<Tab>('live')
   const [shops, setShops]         = useState<Shop[]>(recentShops)
@@ -125,7 +136,12 @@ export default function AdminClient({
   const [users, setUsers]         = useState<UserRow[]>(recentUsers)
   const [proposals, setProposals] = useState<Proposal[]>(recentProposals)
   const [reviews, setReviews]     = useState<Review[]>(recentReviews)
+  const [events, setEvents]       = useState<EventRow[]>(recentEvents)
+  const [eventSearch, setEventSearch] = useState('')
+  const [eventFilter, setEventFilter] = useState<'all' | 'unverified' | 'scraper'>('all')
   const [loading, setLoading]     = useState<string | null>(null)
+  const [editMarketId, setEditMarketId]         = useState<string | 'new' | null>(null)
+  const [proposalToImport, setProposalToImport] = useState<Proposal | null>(null)
 
   // Filters
   const [shopFilter, setShopFilter]     = useState<'all' | 'pending' | 'premium'>('all')
@@ -203,6 +219,20 @@ export default function AdminClient({
     setLoading(id + '_del')
     await adminAction({ type: 'delete_market', id })
     setMarkets(m => m.filter(mk => mk.id !== id))
+    setLoading(null)
+  }
+
+  const verifyEvent = async (id: string, v: boolean) => {
+    setLoading(id + '_ev')
+    await supabase.from('market_events').update({ is_verified: v }).eq('id', id)
+    setEvents(e => e.map(ev => ev.id === id ? { ...ev, is_verified: v } : ev))
+    setLoading(null)
+  }
+  const deleteEvent = async (id: string) => {
+    if (!confirm('Eliminare definitivamente questo evento?')) return
+    setLoading(id + '_evdel')
+    await adminAction({ type: 'delete_event', id })
+    setEvents(e => e.filter(ev => ev.id !== id))
     setLoading(null)
   }
 
@@ -287,6 +317,7 @@ export default function AdminClient({
       items: [
         { id: 'shops'     as Tab, label: 'Negozi',     icon: Store,            badge: shops.filter(s => !s.is_verified).length || undefined },
         { id: 'markets'   as Tab, label: 'Mercatini',  icon: MapPin,           badge: undefined },
+        { id: 'events'    as Tab, label: 'Eventi',     icon: Package,          badge: events.filter(ev => !ev.is_verified).length || undefined },
         { id: 'proposals' as Tab, label: 'Proposte',   icon: FileStack,        badge: stats.pendingProposals || undefined },
         { id: 'reviews'   as Tab, label: 'Recensioni', icon: ThumbsUp,         badge: undefined },
         { id: 'feedback'  as Tab, label: 'Feedback',   icon: MessageCircle,    badge: undefined },
@@ -328,12 +359,53 @@ export default function AdminClient({
     const email = emailMap[u.id] ?? ''
     return q(u.first_name ?? '').includes(sq) || q(u.last_name ?? '').includes(sq) || q(u.username ?? '').includes(sq) || q(email).includes(sq)
   })
+  const filteredEvents = events.filter(ev => {
+    const matchFilter = eventFilter === 'unverified' ? !ev.is_verified : eventFilter === 'scraper' ? ev.source === 'gemini-ai' : true
+    if (!matchFilter) return false
+    if (!eventSearch) return true
+    const sq = q(eventSearch)
+    return q(ev.name).includes(sq) || q(ev.city).includes(sq) || q(ev.region ?? '').includes(sq)
+  })
 
   const conversionRate = stats.totalShops > 0
     ? ((stats.premiumShops / stats.totalShops) * 100).toFixed(1)
     : '0'
 
+  function handleMarketSaved(market: SavedMarket, isNew: boolean) {
+    if (isNew) {
+      setMarkets(m => [market, ...m])
+    } else {
+      setMarkets(m => m.map(mk => mk.id === market.id ? market : mk))
+    }
+    if (!isNew) setEditMarketId(null)
+  }
+
   return (
+    <>
+    {(editMarketId || proposalToImport) && (
+      <MarketEditor
+        marketId={proposalToImport ? 'new' : editMarketId!}
+        initialData={proposalToImport ? {
+          name:   proposalToImport.name,
+          city:   proposalToImport.city,
+          region: proposalToImport.region,
+          website:   proposalToImport.website  ?? '',
+          instagram: proposalToImport.instagram ?? '',
+          description: proposalToImport.description ?? '',
+          schedule_notes: proposalToImport.schedule ?? '',
+          is_verified: false,
+          is_featured: false,
+        } : undefined}
+        onClose={() => { setEditMarketId(null); setProposalToImport(null) }}
+        onSaved={(market, isNew) => {
+          handleMarketSaved(market, isNew)
+          if (proposalToImport) {
+            updateProposal(proposalToImport.id, 'approved')
+            setProposalToImport(null)
+          }
+        }}
+      />
+    )}
     <div className="min-h-screen bg-[#f4f2ef] flex">
 
       {/* ── SIDEBAR ────────────────────────────────────────────────────── */}
@@ -909,6 +981,12 @@ export default function AdminClient({
               <span className="text-[12px] text-muted flex-shrink-0">
                 {marketSearch ? `${filteredMarkets.length} / ${markets.length}` : `${markets.length} totali`}
               </span>
+              <button
+                onClick={() => setEditMarketId('new')}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold bg-espresso text-parchment hover:bg-sienna transition-colors flex-shrink-0"
+              >
+                <Plus size={13} /> Nuovo
+              </button>
             </div>
             <div className="space-y-2">
               {filteredMarkets.map(m => (
@@ -929,6 +1007,10 @@ export default function AdminClient({
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button onClick={() => setEditMarketId(m.id)} title="Modifica"
+                      className="p-1.5 rounded-lg text-muted hover:text-espresso hover:bg-cream transition-colors">
+                      <Pencil size={14} />
+                    </button>
                     <button onClick={() => featureMarket(m.id, !m.is_featured)} disabled={loading === m.id + '_f'} title={m.is_featured ? 'Rimuovi evidenza' : 'Metti in evidenza'}
                       className={cn('p-1.5 rounded-lg transition-colors', m.is_featured ? 'text-gold bg-gold/10' : 'text-muted hover:text-gold hover:bg-gold/10')}>
                       {loading === m.id + '_f' ? <Loader2 size={14} className="animate-spin" /> : <Star size={14} />}
@@ -937,12 +1019,12 @@ export default function AdminClient({
                       <Eye size={14} />
                     </a>
                     {m.is_verified ? (
-                      <button onClick={() => verifyMarket(m.id, false)} disabled={!!loading}
+                      <button onClick={() => verifyMarket(m.id, false)} disabled={!!loading} title="Revoca verifica"
                         className="p-1.5 rounded-lg text-green-700 bg-green-50 hover:bg-red-50 hover:text-red-600 transition-colors">
                         {loading === m.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                       </button>
                     ) : (
-                      <button onClick={() => verifyMarket(m.id, true)} disabled={!!loading}
+                      <button onClick={() => verifyMarket(m.id, true)} disabled={!!loading} title="Verifica"
                         className="p-1.5 rounded-lg text-muted bg-cream hover:bg-green-50 hover:text-green-700 transition-colors">
                         {loading === m.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                       </button>
@@ -955,6 +1037,89 @@ export default function AdminClient({
                   </div>
                 </div>
               ))}
+              {filteredMarkets.length === 0 && (
+                <p className="text-muted text-sm text-center py-8">Nessun mercatino trovato.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── EVENTI ───────────────────────────────────────────────── */}
+        {tab === 'events' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                <input
+                  type="text" value={eventSearch} onChange={e => setEventSearch(e.target.value)}
+                  placeholder="Cerca per nome, città, regione…"
+                  className="w-full pl-9 pr-4 py-2 text-[13px] bg-white border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-espresso/20 focus:border-espresso/40 placeholder:text-muted/50"
+                />
+              </div>
+              {(['all', 'unverified', 'scraper'] as const).map(f => (
+                <button key={f} onClick={() => setEventFilter(f)}
+                  className={cn('px-4 py-2 rounded-xl text-[12px] font-semibold transition-colors border',
+                    eventFilter === f ? 'bg-espresso text-parchment border-espresso' : 'bg-white text-muted border-border hover:border-espresso/30')}>
+                  {f === 'all' ? `Tutti (${events.length})` : f === 'unverified' ? `Da verificare (${events.filter(ev => !ev.is_verified).length})` : `AI scraper (${events.filter(ev => ev.source === 'gemini-ai').length})`}
+                </button>
+              ))}
+              <span className="text-[12px] text-muted flex-shrink-0">
+                {eventSearch || eventFilter !== 'all' ? `${filteredEvents.length} / ${events.length}` : `${events.length} totali`}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {filteredEvents.map(ev => (
+                <div key={ev.id} className={cn(
+                  'bg-white border rounded-xl px-4 py-3 flex items-center gap-3',
+                  !ev.is_verified ? 'border-amber-200 bg-amber-50/20' : 'border-border'
+                )}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-espresso text-sm truncate">{ev.name}</p>
+                      {ev.source === 'gemini-ai' && (
+                        <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full flex-shrink-0">AI</span>
+                      )}
+                      {ev.source === 'proposal' && (
+                        <span className="text-[9px] font-bold bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full flex-shrink-0">proposta</span>
+                      )}
+                      {ev.is_recurring && (
+                        <span className="text-[9px] font-bold bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full flex-shrink-0">ricorrente</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted mt-0.5">
+                      {ev.city}{ev.region ? ` · ${ev.region}` : ''}
+                      {ev.event_type ? ` · ${ev.event_type}` : ''}
+                      {ev.start_date ? ` · ${new Date(ev.start_date).toLocaleDateString('it-IT')}` : ''}
+                    </p>
+                    {ev.website && (
+                      <a href={ev.website} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] text-sienna hover:underline truncate block">{ev.website}</a>
+                    )}
+                    <p className="text-[11px] text-muted mt-0.5">{fmtDate(ev.created_at)}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {ev.is_verified ? (
+                      <button onClick={() => verifyEvent(ev.id, false)} disabled={loading === ev.id + '_ev'} title="Revoca verifica"
+                        className="p-1.5 rounded-lg text-green-700 bg-green-50 hover:bg-red-50 hover:text-red-600 transition-colors">
+                        {loading === ev.id + '_ev' ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                      </button>
+                    ) : (
+                      <button onClick={() => verifyEvent(ev.id, true)} disabled={loading === ev.id + '_ev'} title="Verifica"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors">
+                        {loading === ev.id + '_ev' ? <Loader2 size={12} className="animate-spin" /> : <><ShieldCheck size={12} /> Verifica</>}
+                      </button>
+                    )}
+                    <button onClick={() => deleteEvent(ev.id)} disabled={loading === ev.id + '_evdel'}
+                      title="Elimina evento"
+                      className="p-1.5 rounded-lg text-muted hover:text-red-600 hover:bg-red-50 transition-colors">
+                      {loading === ev.id + '_evdel' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {filteredEvents.length === 0 && (
+                <p className="text-muted text-sm text-center py-8">Nessun evento trovato.</p>
+              )}
             </div>
           </div>
         )}
@@ -985,15 +1150,21 @@ export default function AdminClient({
                     <p className="text-[11px] text-muted mt-1">{fmtDate(p.created_at)}</p>
                   </div>
                   {p.status === 'pending' && (
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button onClick={() => updateProposal(p.id, 'approved')} disabled={loading === p.id + '_p'}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors">
-                        {loading === p.id + '_p' ? <Loader2 size={12} className="animate-spin" /> : <><CheckCircle size={12} /> Approva</>}
+                    <div className="flex flex-col gap-1.5 flex-shrink-0">
+                      <button onClick={() => setProposalToImport(p)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-espresso text-parchment hover:bg-sienna transition-colors whitespace-nowrap">
+                        <Plus size={12} /> Importa in Mercatini
                       </button>
-                      <button onClick={() => updateProposal(p.id, 'rejected')} disabled={loading === p.id + '_p'}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
-                        <XCircle size={12} /> Rifiuta
-                      </button>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => updateProposal(p.id, 'approved')} disabled={loading === p.id + '_p'}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors">
+                          {loading === p.id + '_p' ? <Loader2 size={12} className="animate-spin" /> : <><CheckCircle size={12} /> Approva</>}
+                        </button>
+                        <button onClick={() => updateProposal(p.id, 'rejected')} disabled={loading === p.id + '_p'}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+                          <XCircle size={12} /> Rifiuta
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1194,5 +1365,6 @@ export default function AdminClient({
         </div>
       </main>
     </div>
+    </>
   )
 }

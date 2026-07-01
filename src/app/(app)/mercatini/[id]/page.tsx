@@ -80,7 +80,57 @@ export default async function MercatinoPage({ params }: Props) {
   const d = market.next_date ? new Date(market.next_date + 'T12:00:00') : null
   const dateLabel = d ? `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_LONG[d.getMonth()]}` : null
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'LocalBusiness',
+        '@id':   `${SITE_URL}/mercatini/${market.id}#business`,
+        name:    market.name,
+        description: market.description?.split('\n')[0] ?? undefined,
+        address: market.address ? {
+          '@type':           'PostalAddress',
+          streetAddress:     market.address,
+          addressLocality:   market.city,
+          addressCountry:    'IT',
+        } : undefined,
+        url:  market.website ?? undefined,
+        ...(market.avg_rating && market.review_count ? {
+          aggregateRating: {
+            '@type':      'AggregateRating',
+            ratingValue:  market.avg_rating,
+            reviewCount:  market.review_count,
+          },
+        } : {}),
+      },
+      ...(market.next_date ? [{
+        '@type':    'Event',
+        name:       market.name,
+        startDate:  market.start_time ? `${market.next_date}T${market.start_time}` : market.next_date,
+        endDate:    market.end_time   ? `${market.next_date}T${market.end_time}`   : undefined,
+        location: {
+          '@type': 'Place',
+          name:    market.name,
+          address: market.address ? {
+            '@type':         'PostalAddress',
+            streetAddress:   market.address,
+            addressLocality: market.city,
+            addressCountry:  'IT',
+          } : { '@type': 'PostalAddress', addressLocality: market.city, addressCountry: 'IT' },
+        },
+        organizer: market.organizer_name ? { '@type': 'Organization', name: market.organizer_name } : undefined,
+        isAccessibleForFree: isFree || undefined,
+        url: `${SITE_URL}/mercatini/${market.id}`,
+      }] : []),
+    ],
+  }
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="min-h-screen bg-parchment">
 
       {/* ── HERO ────────────────────────────────────────────────── */}
@@ -252,17 +302,23 @@ export default async function MercatinoPage({ params }: Props) {
           {market.next_date && (
           <div className="flex-1">
             <AddToCalendar event={{
-              id:          market.id,
-              name:        market.name,
-              start_date:  market.next_date,
-              start_time:  market.start_time ?? undefined,
-              end_time:    market.end_time ?? undefined,
-              address:     market.address ?? undefined,
-              city:        market.city,
-              region:      market.region,
-              description: market.description ?? undefined,
-              price_info:  market.price_info ?? undefined,
-              organizer:   market.organizer_name ?? undefined,
+              id:             market.id,
+              name:           market.name,
+              start_date:     market.next_date,
+              start_time:     market.start_time ?? undefined,
+              end_time:       market.end_time ?? undefined,
+              address:        market.address ?? undefined,
+              city:           market.city,
+              region:         market.region,
+              description:    market.description ?? undefined,
+              price_info:     market.price_info ?? undefined,
+              organizer:      market.organizer_name ?? undefined,
+              website:        market.website ?? undefined,
+              instagram:      market.instagram ?? undefined,
+              schedule_notes: market.schedule_notes ?? undefined,
+              frequency:      market.frequency ?? undefined,
+              tips:           market.tips ?? undefined,
+              icsTable:       'market',
             }} />
           </div>
           )}
@@ -309,5 +365,6 @@ export default async function MercatinoPage({ params }: Props) {
 
       </div>
     </div>
+    </>
   )
 }

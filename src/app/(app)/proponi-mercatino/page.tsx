@@ -17,6 +17,14 @@ const EVENT_TYPES = [
   { value: 'vinili',        label: 'Vinili & fumetti' },
 ]
 
+const FREQUENCY_OPTIONS = [
+  { value: '',             label: 'Non so / una tantum' },
+  { value: 'settimanale',  label: 'Ogni settimana' },
+  { value: 'mensile',      label: 'Una volta al mese' },
+  { value: 'occasionale',  label: 'Qualche volta l\'anno' },
+  { value: 'annuale',      label: 'Una volta l\'anno' },
+]
+
 export default function ProponiMercatinoPage() {
   const router = useRouter()
 
@@ -27,6 +35,7 @@ export default function ProponiMercatinoPage() {
   const [website, setWebsite]       = useState('')
   const [instagram, setInstagram]   = useState('')
   const [schedule, setSchedule]     = useState('')
+  const [frequency, setFrequency]   = useState('')
   const [description, setDescription] = useState('')
   const [eventType, setEventType]   = useState('mercatino')
   const [email, setEmail]           = useState('')
@@ -51,14 +60,15 @@ export default function ProponiMercatinoPage() {
         name:        name.trim(),
         city:        city.trim(),
         region,
-        address:     address.trim() || null,
-        website:     website.trim() || null,
+        address:     address.trim()  || null,
+        website:     website.trim()  || null,
         instagram:   instagram.replace(/^@/, '').trim() || null,
         schedule:    schedule.trim() || null,
+        frequency:   frequency       || null,
         description: description.trim() || null,
         event_type:  eventType,
-        email:       email.trim() || user?.email || null,
-        user_id:     user?.id ?? null,
+        email:       email.trim()    || user?.email || null,
+        user_id:     user?.id        ?? null,
       })
 
       if (err) throw err
@@ -82,7 +92,7 @@ export default function ProponiMercatinoPage() {
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link href="/mercatini" className="btn-primary px-6 py-2.5">Torna ai mercatini</Link>
-          <button onClick={() => { setDone(false); setName(''); setCity(''); setRegion(''); setAddress(''); setWebsite(''); setInstagram(''); setSchedule(''); setDescription(''); setEmail('') }}
+          <button onClick={() => { setDone(false); setName(''); setCity(''); setRegion(''); setAddress(''); setWebsite(''); setInstagram(''); setSchedule(''); setFrequency(''); setDescription(''); setEmail('') }}
             className="btn-outline px-6 py-2.5">
             Proponi un altro
           </button>
@@ -155,13 +165,25 @@ export default function ProponiMercatinoPage() {
             className="input" placeholder="es. Piazza Castello, Ferrara" maxLength={200} />
         </div>
 
-        {/* Calendario */}
-        <div>
-          <label htmlFor="schedule" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
-            Quando si tiene <span className="text-muted font-normal normal-case">— opzionale</span>
-          </label>
-          <input id="schedule" type="text" value={schedule} onChange={e => setSchedule(e.target.value)}
-            className="input" placeholder="es. Prima domenica del mese, ore 8-18" maxLength={200} />
+        {/* Cadenza */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="frequency" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
+              Con quale frequenza
+            </label>
+            <select id="frequency" value={frequency} onChange={e => setFrequency(e.target.value)} className="input">
+              {FREQUENCY_OPTIONS.map(f => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="schedule" className="block text-[11px] font-semibold text-coffee uppercase tracking-[0.08em] mb-1.5">
+              Quando si tiene <span className="text-muted font-normal normal-case">— opz.</span>
+            </label>
+            <input id="schedule" type="text" value={schedule} onChange={e => setSchedule(e.target.value)}
+              className="input" placeholder="es. Prima domenica del mese" maxLength={200} />
+          </div>
         </div>
 
         {/* Website + Instagram */}

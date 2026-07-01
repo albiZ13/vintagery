@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { CalendarPlus, X, MapPin, Clock, Euro, Calendar } from 'lucide-react'
+import { CalendarPlus, X, MapPin, Clock, Euro, Calendar, RefreshCw } from 'lucide-react'
 
 interface EventData {
   id: string
   name: string
-  start_date: string
+  start_date: string | null
   end_date?: string | null
   start_time?: string | null
   end_time?: string | null
@@ -16,6 +16,12 @@ interface EventData {
   description?: string | null
   price_info?: string | null
   organizer?: string | null
+  website?: string | null
+  instagram?: string | null
+  schedule_notes?: string | null
+  frequency?: string | null
+  tips?: string | null
+  icsTable?: 'event' | 'market'
 }
 
 interface Props {
@@ -32,15 +38,34 @@ function toGoogleDate(dateStr: string, timeStr?: string | null): string {
     : dt.toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')
 }
 
-function buildGoogleUrl(ev: EventData): string {
-  const start = toGoogleDate(ev.start_date, ev.start_time)
-  const end   = toGoogleDate(ev.end_date ?? ev.start_date, ev.end_time ?? ev.start_time)
-  const loc   = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
-  const details = [
-    ev.description?.split('\n')[0]?.slice(0, 200),
-    ev.price_info  ? `Ingresso: ${ev.price_info}`      : null,
-    ev.organizer   ? `Organizzatore: ${ev.organizer}`  : null,
+function nextDay(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+function buildDetails(ev: EventData): string {
+  const SITE = 'https://vintagery.it'
+  return [
+    ev.description?.split('\n')[0]?.slice(0, 250) ?? null,
+    ev.schedule_notes ? `📅 Cadenza: ${ev.schedule_notes}` : ev.frequency ? `📅 Cadenza: ${ev.frequency}` : null,
+    ev.price_info     ? `🎟 Ingresso: ${ev.price_info}`    : null,
+    ev.organizer      ? `👤 Organizzatore: ${ev.organizer}` : null,
+    ev.tips           ? `💡 Consigli: ${ev.tips}`           : null,
+    ev.instagram      ? `📸 Instagram: @${ev.instagram.replace(/^@/, '')}` : null,
+    ev.website        ? `🌐 Sito: ${ev.website}`            : null,
+    `🗺 Vintagery: ${SITE}/mercatini/${ev.id}`,
   ].filter(Boolean).join('\n')
+}
+
+function buildGoogleUrl(ev: EventData): string {
+  const startDate = ev.start_date!
+  const hasTime = !!ev.start_time
+  const start = toGoogleDate(startDate, ev.start_time)
+  const endDate = ev.end_date ?? (hasTime ? startDate : nextDay(startDate))
+  const end   = toGoogleDate(endDate, ev.end_time ?? ev.start_time)
+  const loc   = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
+  const details = buildDetails(ev)
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text:   ev.name,
@@ -52,15 +77,13 @@ function buildGoogleUrl(ev: EventData): string {
 }
 
 function buildOutlookUrl(ev: EventData): string {
-  const start = ev.start_time ? `${ev.start_date}T${ev.start_time}` : ev.start_date
-  const end   = ev.end_time
-    ? `${ev.end_date ?? ev.start_date}T${ev.end_time}`
-    : ev.end_date ?? ev.start_date
-  const loc  = [ev.address, ev.city].filter(Boolean).join(', ')
-  const body = [
-    ev.description?.split('\n')[0]?.slice(0, 200),
-    ev.price_info ? `Ingresso: ${ev.price_info}` : null,
-  ].filter(Boolean).join('\n')
+  const startDate = ev.start_date!
+  const hasTime = !!ev.start_time
+  const start = hasTime ? `${startDate}T${ev.start_time}` : startDate
+  const endDate = ev.end_date ?? (hasTime ? startDate : nextDay(startDate))
+  const end   = ev.end_time ? `${endDate}T${ev.end_time}` : endDate
+  const loc   = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
+  const body  = buildDetails(ev)
   const params = new URLSearchParams({
     path: '/calendar/action/compose', rru: 'addevent',
     subject: ev.name, startdt: start, enddt: end,
@@ -148,7 +171,8 @@ const OPTIONS = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 function formatPreviewDate(ev: EventData): string {
-  const d = new Date(ev.start_date)
+  if (!ev.start_date) return ''
+  const d = new Date(ev.start_date + 'T12:00:00')
   const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' }
   let s = d.toLocaleDateString('it-IT', opts)
   if (ev.end_date && ev.end_date !== ev.start_date) {
@@ -184,19 +208,23 @@ export default function AddToCalendar({ event }: Props) {
 
   function handleSelect(id: string) {
     setOpen(false)
+    const src = event.icsTable ?? 'event'
+    const icsUrl = `/api/event-ics?id=${event.id}&source=${src}`
     if (id === 'google') {
       window.open(buildGoogleUrl(event), '_blank', 'noopener noreferrer')
     } else if (id === 'apple') {
-      window.open(`webcal://${window.location.host}/api/event-ics?id=${event.id}`)
+      window.open(`webcal://${window.location.host}${icsUrl}`)
     } else if (id === 'outlook') {
       window.open(buildOutlookUrl(event), '_blank', 'noopener noreferrer')
     } else if (id === 'ics') {
       const a = document.createElement('a')
-      a.href = `/api/event-ics?id=${event.id}`
+      a.href = icsUrl
       a.download = `${event.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.ics`
       a.click()
     }
   }
+
+  if (!event.start_date) return null
 
   const loc = [event.address, event.city].filter(Boolean).join(' · ')
 
@@ -253,6 +281,12 @@ export default function AddToCalendar({ event }: Props) {
               <div className="flex items-start gap-1.5 text-[11px] text-coffee">
                 <MapPin size={10} className="text-sienna mt-0.5 flex-shrink-0" />
                 <span className="line-clamp-1">{loc}</span>
+              </div>
+            )}
+            {(event.schedule_notes || event.frequency) && (
+              <div className="flex items-start gap-1.5 text-[11px] text-coffee">
+                <RefreshCw size={10} className="text-sienna mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-1">{event.schedule_notes ?? event.frequency}</span>
               </div>
             )}
             {event.price_info && (

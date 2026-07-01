@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     const { data: proposal } = await supabase
       .from('market_proposals')
-      .select('name, city, region, address, date, start_time, end_time, description, price_info, organizer_name, shop_id, email, event_type')
+      .select('name, city, region, address, website, instagram, description, email, frequency, schedule, event_type, user_id')
       .eq('id', id)
       .single()
 
@@ -90,52 +90,36 @@ export async function POST(req: NextRequest) {
     if (isApproved) {
       const { data: insertedEvent } = await supabase.from('market_events').insert({
         name:        proposal.name,
-        description: (proposal as any).description || null,
-        event_type:  (proposal as any).event_type || 'evento',
+        description: proposal.description || null,
+        event_type:  proposal.event_type  || 'mercatino',
         city:        proposal.city,
-        region:      proposal.region || null,
-        address:     (proposal as any).address || null,
-        start_date:  (proposal as any).date,
-        start_time:  (proposal as any).start_time || null,
-        end_time:    (proposal as any).end_time || null,
-        price_info:  (proposal as any).price_info || null,
-        organizer:   (proposal as any).organizer_name || null,
-        shop_id:     (proposal as any).shop_id || null,
+        region:      proposal.region      || null,
+        address:     proposal.address     || null,
+        start_date:  null,
+        website:     proposal.website     || null,
+        instagram:   proposal.instagram   || null,
         source:      'proposal',
         is_verified: true,
+        is_recurring: false,
       }).select('id').single()
 
-      // Notifica in-app al negozio
-      if ((proposal as any).shop_id) {
-        const { data: shopRow } = await supabase
-          .from('shops')
-          .select('owner_id')
-          .eq('id', (proposal as any).shop_id)
-          .single()
-        if (shopRow?.owner_id) {
-          await supabase.from('notifications').insert({
-            user_id: shopRow.owner_id,
-            type:    'event_published',
-            title:   'Evento approvato!',
-            body:    `Il tuo evento "${proposal.name}" è ora live su Vintagery.`,
-            href:    insertedEvent?.id ? `/mercatini/eventi/${insertedEvent.id}` : '/mercatini',
-          })
-        }
+      // Notifica in-app all'autore della proposta (se registrato)
+      if (proposal.user_id) {
+        await supabase.from('notifications').insert({
+          user_id: proposal.user_id,
+          type:    'event_published',
+          title:   'Proposta approvata!',
+          body:    `"${proposal.name}" è ora live su Vintagery.`,
+          href:    insertedEvent?.id ? `/mercatini/eventi/${insertedEvent.id}` : '/mercatini',
+        })
       }
     }
 
-    // Risolvi email: dal form pubblico o dall'owner del negozio
+    // Email di notifica al proponente
     let toEmail: string | null = proposal.email ?? null
-    if (!toEmail && (proposal as any).shop_id) {
-      const { data: shopRow } = await supabase
-        .from('shops')
-        .select('owner_id')
-        .eq('id', (proposal as any).shop_id)
-        .single()
-      if (shopRow?.owner_id) {
-        const { data: { user: ownerUser } } = await supabase.auth.admin.getUserById(shopRow.owner_id)
-        toEmail = ownerUser?.email ?? null
-      }
+    if (!toEmail && proposal.user_id) {
+      const { data: { user: proposer } } = await supabase.auth.admin.getUserById(proposal.user_id)
+      toEmail = proposer?.email ?? null
     }
 
     if (toEmail && resend) {

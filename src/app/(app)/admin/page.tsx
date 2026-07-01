@@ -63,6 +63,8 @@ export default async function AdminPage() {
     { data: lastScraperData },
     { count: aiMarketsCount },
     { data: feedbackData },
+    { data: recentEvents },
+    { count: unverifiedEventsCount },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_demo', false),
@@ -104,6 +106,11 @@ export default async function AdminPage() {
     supabase.from('site_feedback')
       .select('id,user_id,body,status,created_at,profiles(username,first_name,last_name)')
       .order('created_at', { ascending: false }).limit(50),
+    supabase.from('market_events')
+      .select('id,name,city,region,event_type,source,start_date,is_verified,is_recurring,website,instagram,created_at')
+      .order('created_at', { ascending: false }).limit(200),
+    supabase.from('market_events')
+      .select('*', { count: 'exact', head: true }).eq('is_verified', false),
   ])
 
   // Piano breakdown
@@ -173,6 +180,8 @@ export default async function AdminPage() {
       recentReviews={(recentReviews ?? []) as any}
       topShops={topShops          ?? []}
       feedbacks={(feedbackData ?? []) as any}
+      recentEvents={(recentEvents ?? []) as any}
+      unverifiedEventsCount={unverifiedEventsCount ?? 0}
     />
   )
 }
