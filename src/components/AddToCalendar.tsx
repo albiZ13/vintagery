@@ -221,7 +221,11 @@ export default function AddToCalendar({ event }: Props) {
     if (id === 'google') {
       window.open(buildGoogleUrl(event), '_blank', 'noopener noreferrer')
     } else if (id === 'apple') {
-      window.open(`webcal://${window.location.host}${icsUrl}`)
+      const a = document.createElement('a')
+      a.href = `webcal://${window.location.host}${icsUrl}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     } else if (id === 'outlook') {
       window.open(buildOutlookUrl(event), '_blank', 'noopener noreferrer')
     } else if (id === 'ics') {
