@@ -1,5 +1,8 @@
+export const revalidate = 3600
+
 import Link from 'next/link'
 import { BadgeCheck, Users, ImageIcon, Star, TrendingUp, ArrowRight, ShieldCheck, Zap, Eye, Link2 } from 'lucide-react'
+import { createServerClient } from '@/lib/supabase-server'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -63,7 +66,35 @@ const FEATURES = [
   },
 ]
 
-export default function PerINegoziPage() {
+export default async function PerINegoziPage() {
+  const supabase = createServerClient()
+
+  let totalUsers   = 0
+  let totalShops   = 0
+  let totalMarkets = 0
+
+  try {
+    const [
+      { count: usersCount },
+      { count: shopsCount },
+      { count: marketsCount },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_verified', true).eq('is_demo', false),
+      supabase.from('markets').select('*', { count: 'exact', head: true }).eq('is_verified', true),
+    ])
+    totalUsers   = usersCount   ?? 0
+    totalShops   = shopsCount   ?? 0
+    totalMarkets = marketsCount ?? 0
+  } catch {}
+
+  const STATS = [
+    { n: totalUsers   > 0 ? `${totalUsers.toLocaleString('it-IT')}+` : '—', label: 'utenti registrati' },
+    { n: totalMarkets > 0 ? `${totalMarkets.toLocaleString('it-IT')}+` : '—', label: 'mercatini in directory' },
+    { n: totalShops   > 0 ? String(totalShops)                         : '—', label: 'negozi verificati' },
+    { n: '20',                                                                  label: 'regioni coperte' },
+  ]
+
   return (
     <>
       {/* Hero */}
@@ -89,6 +120,20 @@ export default function PerINegoziPage() {
           >
             Inizia ora <ArrowRight size={14} />
           </Link>
+        </div>
+      </section>
+
+      {/* Stats live */}
+      <section className="bg-white border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+            {STATS.map(({ n, label }) => (
+              <div key={label}>
+                <p className="font-serif font-bold text-espresso text-[2rem] leading-none mb-1">{n}</p>
+                <p className="text-[11px] text-muted uppercase tracking-[0.1em]">{label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
