@@ -9,7 +9,7 @@ import {
 import { createServerClient } from '@/lib/supabase-server'
 import AddToCalendar from '@/components/AddToCalendar'
 import RecurringMarketCard from '@/components/RecurringMarketCard'
-import { REGION_CONFIG, AREA_PATTERNS, DEFAULT_CONFIG } from '@/lib/regions-config'
+import { REGION_CONFIG, DEFAULT_CONFIG } from '@/lib/regions-config'
 import type { MarketEvent } from '@/types'
 import type { Metadata } from 'next'
 
@@ -56,9 +56,8 @@ export default async function EventoDetailPage({ params }: Props) {
   if (!ev) notFound()
   const event = ev as MarketEvent
 
-  const cfg     = REGION_CONFIG[event.region] ?? DEFAULT_CONFIG
-  const pattern = AREA_PATTERNS[cfg.area] ?? AREA_PATTERNS.default
-  const [g1, g2] = cfg.gradient
+  const cfg = REGION_CONFIG[event.region] ?? DEFAULT_CONFIG
+  const [g1, g2, g3] = cfg.gradient
   const accent  = cfg.accent
 
   const { main: desc, schedule } = cleanDescription(event.description)
@@ -80,11 +79,7 @@ export default async function EventoDetailPage({ params }: Props) {
       {/* ── HERO ──────────────────────────────────────────────────── */}
       <div
         className="relative overflow-hidden"
-        style={{
-          background:      `linear-gradient(135deg, ${g1}, ${g2})`,
-          backgroundImage: `${pattern}, linear-gradient(135deg, ${g1}, ${g2})`,
-          backgroundBlendMode: 'overlay, normal',
-        }}
+        style={{ background: `linear-gradient(135deg, ${g1}, ${g2}, ${g3})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/40" />
 
@@ -224,7 +219,7 @@ export default async function EventoDetailPage({ params }: Props) {
         {/* Link + Azioni */}
         <div className="flex flex-wrap gap-3">
           <div className="flex-1">
-            <AddToCalendar event={event} />
+            <AddToCalendar event={{ ...event, schedule_notes: schedule ?? undefined }} />
           </div>
           {event.website && (
             <a

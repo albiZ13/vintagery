@@ -44,6 +44,12 @@ function nextDay(dateStr: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+function addHours(timeStr: string, h: number): string {
+  const [hh, mm] = timeStr.split(':').map(Number)
+  const total = hh * 60 + (mm || 0) + h * 60
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
 function buildDetails(ev: EventData): string {
   const SITE = 'https://vintagery.it'
   return [
@@ -60,12 +66,13 @@ function buildDetails(ev: EventData): string {
 
 function buildGoogleUrl(ev: EventData): string {
   const startDate = ev.start_date!
-  const hasTime = !!ev.start_time
-  const start = toGoogleDate(startDate, ev.start_time)
-  const endDate = ev.end_date ?? (hasTime ? startDate : nextDay(startDate))
-  const end   = toGoogleDate(endDate, ev.end_time ?? ev.start_time)
-  const loc   = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
-  const details = buildDetails(ev)
+  const hasTime   = !!ev.start_time
+  const endTime   = ev.end_time ?? (ev.start_time ? addHours(ev.start_time, 3) : null)
+  const start     = toGoogleDate(startDate, ev.start_time)
+  const endDate   = ev.end_date ?? (hasTime ? startDate : nextDay(startDate))
+  const end       = toGoogleDate(endDate, endTime)
+  const loc       = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
+  const details   = buildDetails(ev)
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text:   ev.name,
@@ -78,12 +85,13 @@ function buildGoogleUrl(ev: EventData): string {
 
 function buildOutlookUrl(ev: EventData): string {
   const startDate = ev.start_date!
-  const hasTime = !!ev.start_time
-  const start = hasTime ? `${startDate}T${ev.start_time}` : startDate
-  const endDate = ev.end_date ?? (hasTime ? startDate : nextDay(startDate))
-  const end   = ev.end_time ? `${endDate}T${ev.end_time}` : endDate
-  const loc   = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
-  const body  = buildDetails(ev)
+  const hasTime   = !!ev.start_time
+  const endTime   = ev.end_time ?? (ev.start_time ? addHours(ev.start_time, 3) : null)
+  const start     = hasTime ? `${startDate}T${ev.start_time}` : startDate
+  const endDate   = ev.end_date ?? (hasTime ? startDate : nextDay(startDate))
+  const end       = endTime ? `${endDate}T${endTime}` : endDate
+  const loc       = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
+  const body      = buildDetails(ev)
   const params = new URLSearchParams({
     path: '/calendar/action/compose', rru: 'addevent',
     subject: ev.name, startdt: start, enddt: end,

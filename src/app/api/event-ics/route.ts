@@ -5,6 +5,14 @@ function escapeICS(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
 }
 
+function foldLine(line: string): string {
+  if (line.length <= 75) return line
+  const out: string[] = [line.slice(0, 75)]
+  let i = 75
+  while (i < line.length) { out.push(' ' + line.slice(i, i + 74)); i += 74 }
+  return out.join('\r\n')
+}
+
 function toICSDate(dateStr: string, timeStr?: string | null): string {
   const d = new Date(`${dateStr}${timeStr ? 'T' + timeStr : 'T00:00:00'}`)
   if (isNaN(d.getTime())) return dateStr.replace(/-/g, '')
@@ -17,6 +25,12 @@ function isoDatePlusOne(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
   d.setDate(d.getDate() + 1)
   return d.toISOString().slice(0, 10)
+}
+
+function addHoursToTime(timeStr: string, h: number): string {
+  const [hh, mm] = timeStr.split(':').map(Number)
+  const total = hh * 60 + (mm || 0) + h * 60
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
 export async function GET(request: NextRequest) {
@@ -52,28 +66,35 @@ export async function GET(request: NextRequest) {
 
   if (!ev) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const allDay   = !ev.start_time
-  const startStr = ev.start_date
-  const endStr   = ev.end_date ?? (allDay ? isoDatePlusOne(startStr) : startStr)
+  const allDay      = !ev.start_time
+  const startStr    = ev.start_date
+  const effectiveEndTime = ev.end_time ?? (ev.start_time ? addHoursToTime(ev.start_time, 3) : null)
+  const endStr      = ev.end_date ?? (allDay ? isoDatePlusOne(startStr) : startStr)
 
   const dtstart = toICSDate(startStr, ev.start_time)
-  const dtend   = toICSDate(endStr, ev.end_time ?? ev.start_time)
+  const dtend   = toICSDate(endStr, effectiveEndTime)
 
   const dtStartLine = allDay ? `DTSTART;VALUE=DATE:${dtstart}` : `DTSTART:${dtstart}`
-  const dtEndLine   = allDay ? `DTEND;VALUE=DATE:${dtend}`   : `DTEND:${dtend}`
+  const dtEndLine   = allDay ? `DTEND;VALUE=DATE:${dtend}`     : `DTEND:${dtend}`
 
   const location = [ev.address, ev.city, ev.region].filter(Boolean).join(', ')
 
-  const cadenza = ev.schedule_notes ?? ev.frequency ?? null
+  // Estrai cadenza da description per market_events (dove non esistono schedule_notes/frequency)
+  let cadenza = ev.schedule_notes ?? ev.frequency ?? null
+  if (!cadenza && ev.description) {
+    cadenza = ev.description.match(/Cadenza:\s*(.+?)(?:\\n|\n|$)/i)?.[1]?.trim() ?? null
+  }
+  const mainDesc = ev.description ? ev.description.split('\n')[0].replace(/\s*Cadenza:.*$/i, '').trim() : ''
   const instagram = ev.instagram ? `@${ev.instagram.replace(/^@/, '')}` : null
+
   const desc = [
-    ev.description ? ev.description.split('\n')[0] : '',
-    cadenza        ? `Cadenza: ${cadenza}`          : '',
-    ev.price_info  ? `Ingresso: ${ev.price_info}`   : '',
-    ev.organizer   ? `Organizzatore: ${ev.organizer}` : '',
-    ev.tips        ? `Consigli: ${ev.tips}`          : '',
-    instagram      ? `Instagram: ${instagram}`       : '',
-    ev.website     ? `Sito: ${ev.website}`           : '',
+    mainDesc                  ? escapeICS(mainDesc)                              : '',
+    cadenza                   ? `Cadenza: ${escapeICS(cadenza)}`                 : '',
+    ev.price_info             ? `Ingresso: ${escapeICS(ev.price_info)}`          : '',
+    ev.organizer              ? `Organizzatore: ${escapeICS(ev.organizer)}`      : '',
+    ev.tips                   ? `Consigli: ${escapeICS(ev.tips)}`                : '',
+    instagram                 ? `Instagram: ${instagram}`                        : '',
+    ev.website                ? `Sito: ${escapeICS(ev.website)}`                 : '',
     `Vintagery: https://vintagery.it/mercatini/${ev.id}`,
   ].filter(Boolean).join('\\n')
 
@@ -85,11 +106,11 @@ export async function GET(request: NextRequest) {
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${ev.id}@vintagery.it`,
-    `${dtStartLine}`,
-    `${dtEndLine}`,
-    `SUMMARY:${escapeICS(ev.name)}`,
-    location ? `LOCATION:${escapeICS(location)}` : '',
-    desc ? `DESCRIPTION:${desc}` : '',
+    dtStartLine,
+    dtEndLine,
+    foldLine(`SUMMARY:${escapeICS(ev.name)}`),
+    location ? foldLine(`LOCATION:${escapeICS(location)}`) : '',
+    desc     ? foldLine(`DESCRIPTION:${desc}`)             : '',
     `URL:https://vintagery.it/mercatini/${ev.id}`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z')}`,
     'END:VEVENT',
