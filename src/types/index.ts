@@ -77,6 +77,9 @@ export interface Shop {
   is_featured: boolean
   is_demo: boolean
   plan: 'free' | 'premium'
+  trial_ends_at: string | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
   created_at: string
 }
 

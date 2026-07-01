@@ -502,7 +502,22 @@ export default function DashboardPage() {
             </ul>
           </div>
 
-          {shop.plan === 'free' && (
+          {shop.trial_ends_at && new Date(shop.trial_ends_at) > new Date() && (
+            <div className="bg-gold/10 border border-gold/30 rounded-xl p-4 flex items-start gap-3">
+              <Crown size={16} className="text-gold flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-espresso text-[14px]">Trial Premium attivo</p>
+                <p className="text-muted text-[12px] mt-0.5">
+                  Hai accesso gratuito a tutte le funzioni Premium fino al{' '}
+                  <span className="font-medium text-espresso">
+                    {new Date(shop.trial_ends_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {shop.plan === 'free' && !(shop.trial_ends_at && new Date(shop.trial_ends_at) > new Date()) && (
             <div className="bg-espresso text-parchment rounded-xl p-6">
               <h2 className="font-serif font-bold text-[20px] mb-1">Passa a Premium</h2>
               <p className="text-parchment/60 text-body-sm mb-5">
@@ -515,10 +530,21 @@ export default function DashboardPage() {
                 <li>✓ Supporto prioritario</li>
               </ul>
               <div className="flex items-end gap-2 mb-4">
-                <span className="font-serif font-bold text-[32px] text-gold">€9</span>
+                <span className="font-serif font-bold text-[32px] text-gold">€14</span>
                 <span className="text-parchment/60 text-body-sm mb-1">/mese</span>
               </div>
-              <button className="bg-gold text-espresso font-semibold px-8 py-3 rounded hover:bg-gold/90 transition-colors text-body-sm w-full">
+              <button
+                onClick={async () => {
+                  const res = await fetch('/api/stripe/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ shop_id: shop.id, plan: 'premium' }),
+                  })
+                  const data = await res.json()
+                  if (data.url) window.location.href = data.url
+                }}
+                className="bg-gold text-espresso font-semibold px-8 py-3 rounded hover:bg-gold/90 transition-colors text-body-sm w-full"
+              >
                 Passa a Premium
               </button>
               <p className="text-[11px] text-parchment/40 mt-3 text-center">
