@@ -14,6 +14,11 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  process.stderr.write('❌ Secrets mancanti: SUPABASE_URL e SUPABASE_SERVICE_KEY devono essere configurati in GitHub → Settings → Secrets → Actions.\n')
+  process.exit(1)
+}
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY,

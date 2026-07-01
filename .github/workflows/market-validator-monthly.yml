@@ -35,7 +35,9 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
 
       - name: Valida, pulisce e arricchisce tutti i mercati
-        run: node scripts/validate-markets.mjs 2>&1 | tee /tmp/validate-output.txt
+        run: |
+          set -o pipefail
+          node scripts/validate-markets.mjs 2>&1 | tee /tmp/validate-output.txt
         env:
           SUPABASE_URL:         ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
