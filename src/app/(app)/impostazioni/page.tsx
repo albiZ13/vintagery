@@ -7,11 +7,12 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import {
   Save, AtSign, User, Loader2, BadgeCheck, AlertCircle,
-  ExternalLink, Bell, Trash2, Camera,
+  ExternalLink, Bell, Trash2, Camera, MapPin,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cn, avatarColor } from '@/lib/utils'
+import { ITALIAN_REGIONS } from '@/types'
 
 interface NotifPrefs {
   notify_upcoming_events: boolean
@@ -71,6 +72,7 @@ export default function ImpostazioniPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName]   = useState('')
   const [bio, setBio]             = useState('')
+  const [region, setRegion]       = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
   const avatarFileRef = useRef<HTMLInputElement>(null)
@@ -103,6 +105,7 @@ export default function ImpostazioniPage() {
         setFirstName(profile.first_name ?? '')
         setLastName(profile.last_name ?? '')
         setBio(profile.bio ?? '')
+        setRegion(profile.region ?? '')
         setAvatarUrl(profile.avatar_url ?? '')
         setNotifPrefs({
           notify_upcoming_events: profile.notify_upcoming_events ?? true,
@@ -156,6 +159,7 @@ export default function ImpostazioniPage() {
       last_name:  lastName,
       full_name:  `${firstName} ${lastName}`,
       bio:        bio || null,
+      region:     region || null,
       avatar_url: avatarUrl || null,
     }).eq('id', userId)
 
@@ -208,11 +212,16 @@ export default function ImpostazioniPage() {
           <h1 className="font-serif text-2xl font-bold text-espresso">Impostazioni</h1>
           <p className="text-muted text-sm mt-0.5">Profilo e preferenze di notifica</p>
         </div>
-        {originalUsername && (
-          <Link href={`/profilo/${originalUsername}`} className="flex items-center gap-1.5 text-sm text-sienna hover:underline">
-            <ExternalLink size={14} /> Vedi profilo
+        <div className="flex items-center gap-3">
+          <Link href="/profilo/modifica" className="flex items-center gap-1.5 text-sm text-sienna hover:underline">
+            <Camera size={14} /> Modifica profilo
           </Link>
-        )}
+          {originalUsername && (
+            <Link href={`/profilo/${originalUsername}`} className="flex items-center gap-1.5 text-sm text-muted hover:underline">
+              <ExternalLink size={14} /> Vedi profilo
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* ── Profilo ──────────────────────────────────────── */}
@@ -263,6 +272,21 @@ export default function ImpostazioniPage() {
             <textarea id="bio" value={bio} onChange={e => setBio(e.target.value)} className="input resize-none" rows={3}
               placeholder="Appassionato di vintage anni '70, colleziono vinili e giacche in pelle..." maxLength={160} />
             <p className="text-[11px] text-muted mt-1 text-right" aria-live="polite">{bio.length}/160</p>
+          </div>
+
+          {/* Regione */}
+          <div>
+            <label htmlFor="region" className="block text-caption font-semibold text-coffee mb-1.5">La tua regione</label>
+            <select
+              id="region"
+              value={region}
+              onChange={e => setRegion(e.target.value)}
+              className="input"
+            >
+              <option value="">Seleziona regione</option>
+              {ITALIAN_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <p className="text-[11px] text-muted mt-1">Usata per mostrare i mercatini più vicini a te nella home.</p>
           </div>
 
           {/* Avatar upload */}
