@@ -8,8 +8,8 @@ import { createClient } from '@/lib/supabase'
 import {
   Save, AtSign, User, Loader2, BadgeCheck, AlertCircle,
   Bell, Trash2, Camera, MapPin, Lock, Shield, Smartphone,
-  Eye, EyeOff, Download, Mail, Key, ExternalLink, ChevronRight,
-  Globe, LayoutDashboard, ImagePlus,
+  Download, Mail, Key, ExternalLink, ChevronRight,
+  Globe, LayoutDashboard, ImagePlus, MessageSquare,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -17,21 +17,37 @@ import { cn, avatarColor } from '@/lib/utils'
 import { ITALIAN_REGIONS } from '@/types'
 import { prepareImage } from '@/lib/image-utils'
 
-type Tab = 'profilo' | 'account' | 'notifiche' | 'privacy' | 'app' | 'pericolo'
+type Tab = 'profilo' | 'account' | 'notifiche' | 'comunicazioni' | 'privacy' | 'app' | 'pericolo'
 
 interface NotifPrefs {
   notify_upcoming_events: boolean
   notify_new_markets:     boolean
   notify_newsletter:      boolean
+  notify_shop_updates:    boolean
+}
+
+interface CommsPrefs {
+  newsletter_subscribed: boolean
+  newsletter_region:     string
+  comms_offers:          boolean
+  comms_tips:            boolean
+}
+
+interface PrivacyPrefs {
+  show_saved:          boolean
+  allow_shop_dm:       boolean
+  show_interests:      boolean
+  profile_searchable:  boolean
 }
 
 const TABS: { id: Tab; label: string; icon: any; danger?: boolean }[] = [
-  { id: 'profilo',    label: 'Profilo pubblico',   icon: User       },
-  { id: 'account',   label: 'Account e accesso',   icon: Key        },
-  { id: 'notifiche', label: 'Notifiche',            icon: Bell       },
-  { id: 'privacy',   label: 'Privacy',              icon: Shield     },
-  { id: 'app',       label: 'App',                  icon: Smartphone },
-  { id: 'pericolo',  label: 'Zona pericolosa',      icon: Trash2, danger: true },
+  { id: 'profilo',        label: 'Profilo pubblico',   icon: User          },
+  { id: 'account',        label: 'Account e accesso',  icon: Key           },
+  { id: 'notifiche',      label: 'Notifiche',           icon: Bell          },
+  { id: 'comunicazioni',  label: 'Comunicazioni',       icon: MessageSquare },
+  { id: 'privacy',        label: 'Privacy',             icon: Shield        },
+  { id: 'app',            label: 'App',                 icon: Smartphone    },
+  { id: 'pericolo',       label: 'Zona pericolosa',     icon: Trash2, danger: true },
 ]
 
 function GoogleIcon() {
@@ -159,21 +175,39 @@ export default function ImpostazioniPage() {
   const [emailError,  setEmailError]  = useState<string | null>(null)
 
   // Account / password
-  const [pwNew,     setPwNew]     = useState('')
-  const [pwConfirm, setPwConfirm] = useState('')
-  const [showPwNew, setShowPwNew] = useState(false)
-  const [savingPw,  setSavingPw]  = useState(false)
-  const [savedPw,   setSavedPw]   = useState(false)
-  const [pwError,   setPwError]   = useState<string | null>(null)
+  const [savingPw, setSavingPw] = useState(false)
+  const [savedPw,  setSavedPw]  = useState(false)
+  const [pwError,  setPwError]  = useState<string | null>(null)
 
   // Notifiche
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({
     notify_upcoming_events: true,
     notify_new_markets:     false,
     notify_newsletter:      false,
+    notify_shop_updates:    false,
   })
   const [savingNotif, setSavingNotif] = useState(false)
   const [savedNotif,  setSavedNotif]  = useState(false)
+
+  // Comunicazioni
+  const [commsPrefs, setCommsPrefs] = useState<CommsPrefs>({
+    newsletter_subscribed: false,
+    newsletter_region:     '',
+    comms_offers:          false,
+    comms_tips:            true,
+  })
+  const [savingComms, setSavingComms] = useState(false)
+  const [savedComms,  setSavedComms]  = useState(false)
+
+  // Privacy
+  const [privacyPrefs, setPrivacyPrefs] = useState<PrivacyPrefs>({
+    show_saved:         false,
+    allow_shop_dm:      true,
+    show_interests:     true,
+    profile_searchable: true,
+  })
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
+  const [savedPrivacy,  setSavedPrivacy]  = useState(false)
 
   // Elimina account
   const [deleteConfirm, setDeleteConfirm] = useState('')
@@ -206,6 +240,19 @@ export default function ImpostazioniPage() {
           notify_upcoming_events: profile.notify_upcoming_events ?? true,
           notify_new_markets:     profile.notify_new_markets     ?? false,
           notify_newsletter:      profile.notify_newsletter      ?? false,
+          notify_shop_updates:    profile.notify_shop_updates    ?? false,
+        })
+        setCommsPrefs({
+          newsletter_subscribed: profile.newsletter_subscribed ?? false,
+          newsletter_region:     profile.newsletter_region     ?? '',
+          comms_offers:          profile.comms_offers          ?? false,
+          comms_tips:            profile.comms_tips            ?? true,
+        })
+        setPrivacyPrefs({
+          show_saved:         profile.show_saved          ?? false,
+          allow_shop_dm:      profile.allow_shop_dm       ?? true,
+          show_interests:     profile.show_interests      ?? true,
+          profile_searchable: profile.profile_searchable  ?? true,
         })
       }
       setLoading(false)
@@ -295,37 +342,43 @@ export default function ImpostazioniPage() {
       setEmailError('Inserisci un indirizzo email valido.'); return
     }
     setSavingEmail(true)
-    const res = await fetch('/api/change-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: newEmail }),
-    })
-    const data = await res.json()
+    const { error } = await supabase.auth.updateUser({ email: newEmail })
     setSavingEmail(false)
-    if (!res.ok) { setEmailError(data.error ?? 'Errore durante il salvataggio.'); return }
-    setUserEmail(newEmail)
+    if (error) { setEmailError(error.message); return }
     setNewEmail('')
     setSavedEmail(true)
-    setTimeout(() => setSavedEmail(false), 3000)
+    setTimeout(() => setSavedEmail(false), 6000)
   }
 
   async function savePassword(e: React.FormEvent) {
     e.preventDefault()
     setPwError(null)
-    if (!pwNew || pwNew.length < 8) { setPwError('La nuova password deve avere almeno 8 caratteri.'); return }
-    if (pwNew !== pwConfirm) { setPwError('Le password non coincidono.'); return }
     setSavingPw(true)
-    const res = await fetch('/api/change-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pwNew }),
+    const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/impostazioni%3Ftab%3Daccount`,
     })
-    const data = await res.json()
     setSavingPw(false)
-    if (!res.ok) { setPwError(data.error ?? 'Errore durante il salvataggio.'); return }
-    setPwNew(''); setPwConfirm('')
+    if (error) { setPwError(error.message); return }
     setSavedPw(true)
-    setTimeout(() => setSavedPw(false), 3000)
+    setTimeout(() => setSavedPw(false), 8000)
+  }
+
+  async function saveCommsPrefs() {
+    if (!userId) return
+    setSavingComms(true)
+    await supabase.from('profiles').update(commsPrefs).eq('id', userId)
+    setSavingComms(false)
+    setSavedComms(true)
+    setTimeout(() => setSavedComms(false), 3000)
+  }
+
+  async function savePrivacyPrefs() {
+    if (!userId) return
+    setSavingPrivacy(true)
+    await supabase.from('profiles').update(privacyPrefs).eq('id', userId)
+    setSavingPrivacy(false)
+    setSavedPrivacy(true)
+    setTimeout(() => setSavedPrivacy(false), 3000)
   }
 
   async function linkGoogle() {
@@ -647,7 +700,7 @@ export default function ImpostazioniPage() {
                     <input
                       type="email"
                       value={newEmail}
-                      onChange={e => { setNewEmail(e.target.value); setEmailError(null) }}
+                      onChange={e => { setNewEmail(e.target.value); setEmailError(null); setSavedEmail(false) }}
                       className="input"
                       placeholder="nuova@email.it"
                       autoComplete="email"
@@ -658,18 +711,18 @@ export default function ImpostazioniPage() {
                       <AlertCircle size={12} />{emailError}
                     </p>
                   )}
+                  {savedEmail && (
+                    <div className="flex items-start gap-2 text-[12px] text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+                      <BadgeCheck size={14} className="mt-0.5 flex-shrink-0" />
+                      <span>Abbiamo inviato un link di conferma a <strong>{newEmail || userEmail}</strong>. Clicca il link per completare il cambio.</span>
+                    </div>
+                  )}
                   <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={savingEmail || !newEmail}
-                      className="btn-primary flex items-center gap-2 px-5 py-2 text-sm disabled:opacity-40"
-                    >
+                    <button type="submit" disabled={savingEmail || !newEmail}
+                      className="btn-primary flex items-center gap-2 px-5 py-2 text-sm disabled:opacity-40">
                       {savingEmail
-                        ? <><Loader2 size={14} className="animate-spin" /> Salvataggio...</>
-                        : savedEmail
-                          ? <><BadgeCheck size={14} /> Aggiornata</>
-                          : <><Save size={14} /> Aggiorna email</>
-                      }
+                        ? <><Loader2 size={14} className="animate-spin" /> Invio...</>
+                        : <><Mail size={14} /> Invia link di conferma</>}
                     </button>
                   </div>
                 </form>
@@ -729,63 +782,32 @@ export default function ImpostazioniPage() {
               </SectionCard>
 
               {authProvider !== 'google' && (
-                <SectionCard title="Cambia password" description="Scegli una password sicura di almeno 8 caratteri.">
-                  <form onSubmit={savePassword} className="space-y-4">
-                    <div>
-                      <FieldLabel>Nuova password</FieldLabel>
-                      <div className="relative">
-                        <input
-                          type={showPwNew ? 'text' : 'password'}
-                          value={pwNew}
-                          onChange={e => setPwNew(e.target.value)}
-                          className="input pr-10"
-                          placeholder="Almeno 8 caratteri"
-                          autoComplete="new-password"
-                        />
-                        <button type="button" onClick={() => setShowPwNew(v => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-coffee">
-                          {showPwNew ? <EyeOff size={15} /> : <Eye size={15} />}
-                        </button>
+                <SectionCard title="Password" description="Ti mandiamo un link via email per impostare una nuova password in sicurezza.">
+                  <form onSubmit={savePassword} className="space-y-3">
+                    {savedPw ? (
+                      <div className="flex items-start gap-2 text-[12px] text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+                        <BadgeCheck size={14} className="mt-0.5 flex-shrink-0" />
+                        <span>Email inviata a <strong>{userEmail}</strong>. Clicca il link per scegliere una nuova password.</span>
                       </div>
-                      {pwNew.length > 0 && (
-                        <div className="mt-2 flex gap-1">
-                          {[4, 6, 8, 12].map(n => (
-                            <div key={n} className={cn(
-                              'h-1 flex-1 rounded-full transition-colors',
-                              pwNew.length >= n ? 'bg-gold' : 'bg-border'
-                            )} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <FieldLabel>Conferma nuova password</FieldLabel>
-                      <div className="relative">
-                        <input
-                          type={showPwNew ? 'text' : 'password'}
-                          value={pwConfirm}
-                          onChange={e => setPwConfirm(e.target.value)}
-                          className="input pr-10"
-                          placeholder="Ripeti la password"
-                          autoComplete="new-password"
-                        />
-                        {pwConfirm.length > 0 && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                            {pwNew === pwConfirm
-                              ? <BadgeCheck size={15} className="text-green-600" />
-                              : <AlertCircle size={15} className="text-red-500" />
-                            }
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {pwError && (
-                      <p className="text-red-600 text-sm flex items-center gap-1.5" role="alert">
-                        <AlertCircle size={13} />{pwError}
+                    ) : (
+                      <p className="text-[13px] text-muted">
+                        Riceverai un'email su <strong className="text-espresso">{userEmail}</strong> con il link per reimpostare la password.
                       </p>
                     )}
-                    <div className="flex justify-end pt-1">
-                      <SaveBtn saving={savingPw} saved={savedPw} label="Aggiorna password" />
+                    {pwError && (
+                      <p className="text-red-600 text-xs flex items-center gap-1.5" role="alert">
+                        <AlertCircle size={12} />{pwError}
+                      </p>
+                    )}
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={savingPw || savedPw}
+                        className="btn-primary flex items-center gap-2 px-5 py-2 text-sm disabled:opacity-40">
+                        {savingPw
+                          ? <><Loader2 size={14} className="animate-spin" /> Invio...</>
+                          : savedPw
+                            ? <><BadgeCheck size={14} /> Email inviata</>
+                            : <><Mail size={14} /> Invia email di reset</>}
+                      </button>
                     </div>
                   </form>
                 </SectionCard>
@@ -796,7 +818,7 @@ export default function ImpostazioniPage() {
           {/* ── NOTIFICHE ────────────────────────────────── */}
           {tab === 'notifiche' && (
             <div className="space-y-5">
-              <SectionCard title="Notifiche email" description="Scegli quali email vuoi ricevere da Vintagery.">
+              <SectionCard title="Avvisi email" description="Notifiche operative legate alla tua attività su Vintagery.">
                 <ToggleRow
                   label="Promemoria eventi salvati"
                   description="Ricevi un'email 3 giorni prima di un mercatino che hai salvato."
@@ -810,71 +832,152 @@ export default function ImpostazioniPage() {
                   onChange={v => setNotifPrefs(p => ({ ...p, notify_new_markets: v }))}
                 />
                 <ToggleRow
-                  label="Newsletter settimanale"
-                  description="Un digest dei migliori mercatini e negozi vintage della settimana."
-                  checked={notifPrefs.notify_newsletter}
-                  onChange={v => setNotifPrefs(p => ({ ...p, notify_newsletter: v }))}
+                  label="Aggiornamenti negozi seguiti"
+                  description="Nuovi post e offerte dai negozi che segui."
+                  checked={notifPrefs.notify_shop_updates}
+                  onChange={v => setNotifPrefs(p => ({ ...p, notify_shop_updates: v }))}
                 />
                 <p className="text-[11px] text-muted pt-3 border-t border-border mt-1">
-                  Le email vengono inviate a <strong>{userEmail}</strong>.
+                  Inviate a <strong>{userEmail}</strong>.
                 </p>
               </SectionCard>
 
               <div className="flex items-center justify-between">
                 {Object.values(notifPrefs).some(Boolean) ? (
-                  <button
-                    type="button"
-                    onClick={() => setNotifPrefs({ notify_upcoming_events: false, notify_new_markets: false, notify_newsletter: false })}
-                    className="text-[12px] text-muted hover:text-rust transition-colors"
-                  >
-                    Disattiva tutte le notifiche
+                  <button type="button"
+                    onClick={() => setNotifPrefs({ notify_upcoming_events: false, notify_new_markets: false, notify_newsletter: false, notify_shop_updates: false })}
+                    className="text-[12px] text-muted hover:text-rust transition-colors">
+                    Disattiva tutte
                   </button>
                 ) : <span />}
-                <button
-                  type="button"
-                  onClick={saveNotifPrefs}
-                  disabled={savingNotif}
-                  className="btn-primary flex items-center gap-2 px-6 py-2.5"
-                >
-                  {savingNotif
-                    ? <><Loader2 size={15} className="animate-spin" /> Salvataggio...</>
-                    : savedNotif
-                      ? <><BadgeCheck size={15} /> Salvato</>
-                      : <><Save size={15} /> Salva preferenze</>
-                  }
+                <button type="button" onClick={saveNotifPrefs} disabled={savingNotif}
+                  className="btn-primary flex items-center gap-2 px-6 py-2.5">
+                  {savingNotif ? <><Loader2 size={15} className="animate-spin" /> Salvataggio...</>
+                    : savedNotif ? <><BadgeCheck size={15} /> Salvato</>
+                    : <><Save size={15} /> Salva</>}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── COMUNICAZIONI ────────────────────────────── */}
+          {tab === 'comunicazioni' && (
+            <div className="space-y-5">
+              <SectionCard title="Newsletter" description="Aggiornamenti periodici sui mercatini italiani selezionati dalla redazione Vintagery.">
+                <ToggleRow
+                  label="Iscrivimi alla newsletter"
+                  description="Digest settimanale con i migliori mercatini, eventi in arrivo e novità."
+                  checked={commsPrefs.newsletter_subscribed}
+                  onChange={v => setCommsPrefs(p => ({ ...p, newsletter_subscribed: v }))}
+                />
+                {commsPrefs.newsletter_subscribed && (
+                  <div className="pt-3 mt-1 border-t border-border">
+                    <label className="block text-[11px] font-bold text-coffee uppercase tracking-[0.08em] mb-1.5">
+                      Regione preferita per la newsletter
+                    </label>
+                    <select
+                      value={commsPrefs.newsletter_region}
+                      onChange={e => setCommsPrefs(p => ({ ...p, newsletter_region: e.target.value }))}
+                      className="input"
+                    >
+                      <option value="">Tutta Italia</option>
+                      {ITALIAN_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <p className="text-[11px] text-muted mt-1">
+                      Lascia vuoto per ricevere mercatini da tutta Italia.
+                    </p>
+                  </div>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Comunicazioni promozionali" description="Messaggi opzionali da Vintagery su offerte e contenuti.">
+                <ToggleRow
+                  label="Offerte e promozioni"
+                  description="Sconti speciali, eventi partner e opportunità selezionate."
+                  checked={commsPrefs.comms_offers}
+                  onChange={v => setCommsPrefs(p => ({ ...p, comms_offers: v }))}
+                />
+                <ToggleRow
+                  label="Consigli e guide"
+                  description="Articoli, guide ai mercatini e contenuti editoriali."
+                  checked={commsPrefs.comms_tips}
+                  onChange={v => setCommsPrefs(p => ({ ...p, comms_tips: v }))}
+                />
+              </SectionCard>
+
+              <div className="flex justify-end">
+                <button type="button" onClick={saveCommsPrefs} disabled={savingComms}
+                  className="btn-primary flex items-center gap-2 px-6 py-2.5">
+                  {savingComms ? <><Loader2 size={15} className="animate-spin" /> Salvataggio...</>
+                    : savedComms ? <><BadgeCheck size={15} /> Salvato</>
+                    : <><Save size={15} /> Salva preferenze</>}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-muted text-center">
+                Puoi disiscriverti in qualsiasi momento.{' '}
+                <Link href="/privacy" className="text-sienna hover:underline">Privacy policy</Link>.
+              </p>
             </div>
           )}
 
           {/* ── PRIVACY ──────────────────────────────────── */}
           {tab === 'privacy' && (
             <div className="space-y-5">
-              <SectionCard title="Visibilità profilo" description="Il tuo profilo @username è visibile a tutti gli utenti di Vintagery.">
-                <div className="flex items-center justify-between py-1">
-                  <div>
-                    <p className="text-sm text-espresso">Il profilo è pubblico</p>
-                    <p className="text-xs text-muted mt-0.5">@{username || 'username'} è trovabile nella directory.</p>
-                  </div>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
-                    Pubblico
-                  </span>
-                </div>
+              <SectionCard title="Visibilità profilo" description="Controlla chi può trovare e vedere il tuo profilo.">
+                <ToggleRow
+                  label="Profilo cercabile"
+                  description="Il tuo @username appare nei risultati di ricerca e nella directory utenti."
+                  checked={privacyPrefs.profile_searchable}
+                  onChange={v => setPrivacyPrefs(p => ({ ...p, profile_searchable: v }))}
+                />
+                <ToggleRow
+                  label="Mostra interessi nel profilo"
+                  description="Le categorie che hai selezionato (vinili, antiquariato…) sono visibili sul tuo profilo."
+                  checked={privacyPrefs.show_interests}
+                  onChange={v => setPrivacyPrefs(p => ({ ...p, show_interests: v }))}
+                />
+                <ToggleRow
+                  label="Mostra mercatini salvati"
+                  description="Gli altri utenti possono vedere quali mercatini hai aggiunto ai preferiti."
+                  checked={privacyPrefs.show_saved}
+                  onChange={v => setPrivacyPrefs(p => ({ ...p, show_saved: v }))}
+                />
                 {originalUsername && (
-                  <Link href={`/profilo/${originalUsername}`}
-                    className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-sienna hover:underline">
-                    <ExternalLink size={12} /> Vedi come appare il tuo profilo
-                  </Link>
+                  <div className="pt-3 mt-1 border-t border-border">
+                    <Link href={`/profilo/${originalUsername}`}
+                      className="inline-flex items-center gap-1.5 text-[12px] text-sienna hover:underline">
+                      <ExternalLink size={12} /> Vedi come appare il tuo profilo
+                    </Link>
+                  </div>
                 )}
               </SectionCard>
 
-              <SectionCard title="Dati raccolti" description="Cosa memorizziamo e come lo usiamo.">
+              <SectionCard title="Messaggi e contatti" description="Gestisci chi può contattarti su Vintagery.">
+                <ToggleRow
+                  label="Permetti messaggi dai negozi"
+                  description="I negozi verificati possono inviarti messaggi diretti (DM) tramite Vintagery."
+                  checked={privacyPrefs.allow_shop_dm}
+                  onChange={v => setPrivacyPrefs(p => ({ ...p, allow_shop_dm: v }))}
+                />
+              </SectionCard>
+
+              <div className="flex justify-end">
+                <button type="button" onClick={savePrivacyPrefs} disabled={savingPrivacy}
+                  className="btn-primary flex items-center gap-2 px-6 py-2.5">
+                  {savingPrivacy ? <><Loader2 size={15} className="animate-spin" /> Salvataggio...</>
+                    : savedPrivacy ? <><BadgeCheck size={15} /> Salvato</>
+                    : <><Save size={15} /> Salva preferenze</>}
+                </button>
+              </div>
+
+              <SectionCard title="I tuoi dati" description="Cosa raccogliamo e come lo usiamo.">
                 <ul className="space-y-3">
                   {[
                     { icon: User,   text: 'Nome, username e bio sono pubblici sul tuo profilo.' },
                     { icon: MapPin, text: 'La tua regione personalizza la home, non è mostrata ad altri.' },
                     { icon: Mail,   text: 'La tua email non è mai visibile ad altri utenti.' },
-                    { icon: Globe,  text: 'I mercatini salvati sono privati e visibili solo a te.' },
+                    { icon: Globe,  text: 'I mercatini salvati sono privati a meno che tu non li renda visibili.' },
                   ].map(({ icon: Icon, text }, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-[13px] text-coffee">
                       <Icon size={13} className="text-gold mt-0.5 flex-shrink-0" />
@@ -882,20 +985,17 @@ export default function ImpostazioniPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 pt-4 border-t border-border">
+                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
                   <Link href="/privacy" className="text-[12px] text-sienna hover:underline flex items-center gap-1">
-                    <ExternalLink size={11} /> Leggi la privacy policy completa
+                    <ExternalLink size={11} /> Privacy policy completa
                   </Link>
+                  <a
+                    href={`mailto:info@vintagery.it?subject=Richiesta%20dati%20account&body=Account%3A%20${encodeURIComponent(userEmail)}`}
+                    className="text-[12px] text-muted hover:text-espresso flex items-center gap-1"
+                  >
+                    <Mail size={11} /> Esporta dati (GDPR)
+                  </a>
                 </div>
-              </SectionCard>
-
-              <SectionCard title="Esporta i tuoi dati" description="Puoi richiedere una copia di tutti i dati legati al tuo account (GDPR Art. 20).">
-                <a
-                  href={`mailto:info@vintagery.it?subject=Richiesta%20dati%20account&body=Ciao%2C%20vorrei%20una%20copia%20dei%20miei%20dati.%0A%0AAccount%3A%20${encodeURIComponent(userEmail)}`}
-                  className="btn-outline flex items-center gap-2 w-fit text-sm px-5 py-2"
-                >
-                  <Mail size={14} /> Richiedi i tuoi dati
-                </a>
               </SectionCard>
             </div>
           )}
