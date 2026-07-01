@@ -130,9 +130,14 @@ export default async function NegozioPage({ params }: Props) {
             className="object-cover"
             priority
           />
-          {shop.plan === 'premium' && (
+          {shop.plan === 'premium' && !shop.is_demo && (
             <span className="absolute top-3 left-3 badge bg-gold text-espresso flex items-center gap-1">
               <Crown size={10} /> Premium
+            </span>
+          )}
+          {shop.is_demo && (
+            <span className="absolute top-3 left-3 badge bg-espresso/70 text-parchment text-[10px]">
+              Negozio di esempio
             </span>
           )}
         </div>

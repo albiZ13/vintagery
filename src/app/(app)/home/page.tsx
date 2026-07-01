@@ -171,7 +171,6 @@ export default async function HomePage() {
       .from('shops')
       .select(SHOP_COLS)
       .eq('is_verified', true)
-      .eq('is_demo', false)
       .order('avg_rating', { ascending: false })
     if (region) q = q.eq('region', region)
     const { data } = await q.limit(3)

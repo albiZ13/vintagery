@@ -65,21 +65,21 @@ export default async function AdminPage() {
     { data: feedbackData },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
-    supabase.from('shops').select('*', { count: 'exact', head: true }),
-    supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_verified', true),
-    supabase.from('shops').select('*', { count: 'exact', head: true }).eq('plan', 'premium'),
+    supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_demo', false),
+    supabase.from('shops').select('*', { count: 'exact', head: true }).eq('is_verified', true).eq('is_demo', false),
+    supabase.from('shops').select('*', { count: 'exact', head: true }).eq('plan', 'premium').eq('is_demo', false),
     supabase.from('markets').select('*', { count: 'exact', head: true }),
     supabase.from('markets').select('*', { count: 'exact', head: true }).eq('is_verified', true),
     supabase.from('conversations').select('*', { count: 'exact', head: true }),
     supabase.from('messages').select('*', { count: 'exact', head: true }),
     supabase.from('market_proposals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('shops').select('plan'),
-    supabase.from('shops').select('region'),
+    supabase.from('shops').select('plan').eq('is_demo', false),
+    supabase.from('shops').select('region').eq('is_demo', false),
     supabase.from('markets').select('region'),
     supabase.from('profiles').select('created_at').order('created_at'),
-    supabase.from('shops').select('created_at').order('created_at'),
+    supabase.from('shops').select('created_at').eq('is_demo', false).order('created_at'),
     supabase.from('shops')
-      .select('id,name,city,region,created_at,is_verified,vat_status,vat_number,plan')
+      .select('id,name,city,region,created_at,is_verified,vat_status,vat_number,plan,is_demo')
       .order('created_at', { ascending: false }).limit(500),
     supabase.from('markets')
       .select('id,name,city,region,next_date,is_verified,is_featured,categories,frequency')

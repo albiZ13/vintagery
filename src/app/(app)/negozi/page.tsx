@@ -22,7 +22,6 @@ async function ShopList({ region, q, city }: { region: string | null; q?: string
     .from('shops')
     .select(SHOP_COLS)
     .eq('is_verified', true)
-    .eq('is_demo', false)
     .order('visibility_score', { ascending: false })
     .order('posts_count',      { ascending: false })
     .limit(60)

@@ -74,15 +74,20 @@ export default function ShopCard({ shop, recentPosts }: Props) {
           />
         </div>
 
-        {/* Activity badge */}
-        {active && (
-          <div className="absolute -top-3 right-4">
+        {/* Activity / demo badge */}
+        <div className="absolute -top-3 right-4 flex gap-1">
+          {(shop as any).is_demo && (
+            <span className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider bg-espresso/8 text-espresso/50 border border-espresso/15 px-2 py-0.5 rounded-full">
+              Esempio
+            </span>
+          )}
+          {active && !(shop as any).is_demo && (
             <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
               Attivo
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Name + verified */}
         <div className="flex items-start gap-1.5 mb-1">

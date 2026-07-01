@@ -75,6 +75,7 @@ export interface Shop {
   visibility_score: number
   is_verified: boolean
   is_featured: boolean
+  is_demo: boolean
   plan: 'free' | 'premium'
   created_at: string
 }
