@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, MapPin, Calendar, Store, LayoutDashboard, LogOut, Settings, ChevronDown, User } from 'lucide-react'
+import { Menu, X, MapPin, Calendar, Store, LayoutDashboard, LogOut, Settings, ChevronDown, User, Download, ShieldCheck } from 'lucide-react'
 import { cn, avatarColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import GlobalSearch from '@/components/GlobalSearch'
@@ -21,7 +21,7 @@ export default function Navbar() {
   const [open, setOpen]       = useState(false)
   const [dropOpen, setDropOpen] = useState(false)
   const [user, setUser]       = useState<SupabaseUser | null>(null)
-  const [profile, setProfile] = useState<{ username?: string; first_name?: string; last_name?: string } | null>(null)
+  const [profile, setProfile] = useState<{ username?: string; first_name?: string; last_name?: string; role?: string } | null>(null)
   const dropRef    = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -32,7 +32,7 @@ export default function Navbar() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
-        const { data } = await supabase.from('profiles').select('username, first_name, last_name').eq('id', user.id).single()
+        const { data } = await supabase.from('profiles').select('username, first_name, last_name, role').eq('id', user.id).single()
         setProfile(data)
       }
     }
@@ -42,7 +42,7 @@ export default function Navbar() {
       setUser(session?.user ?? null)
       if (!session?.user) setProfile(null)
       if (session?.user) {
-        supabase.from('profiles').select('username, first_name, last_name').eq('id', session.user.id).single()
+        supabase.from('profiles').select('username, first_name, last_name, role').eq('id', session.user.id).single()
           .then(({ data }) => setProfile(data))
       }
     })
@@ -83,13 +83,6 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
-          {user && (
-            <Link href="/home"
-              className={cn('text-body-sm font-medium transition-colors flex items-center gap-1',
-                pathname === '/home' ? 'text-sienna' : 'text-coffee hover:text-sienna')}>
-              <LayoutDashboard size={14} /> Home
-            </Link>
-          )}
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
               className={cn('text-body-sm font-medium transition-colors flex items-center gap-1',
@@ -144,6 +137,18 @@ export default function Navbar() {
                     onClick={() => setDropOpen(false)}>
                     <LayoutDashboard size={14} /> Dashboard negozio
                   </Link>
+                  <Link href="/installa"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
+                    onClick={() => setDropOpen(false)}>
+                    <Download size={14} /> Installa l&apos;app
+                  </Link>
+                  {profile?.role === 'admin' && (
+                    <Link href="/admin"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-coffee hover:bg-cream hover:text-espresso transition-colors"
+                      onClick={() => setDropOpen(false)}>
+                      <ShieldCheck size={14} /> Admin
+                    </Link>
+                  )}
                   <hr className="border-border my-1" />
                   <button onClick={() => { setDropOpen(false); handleSignOut() }}
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-rust hover:bg-red-50 transition-colors w-full text-left">
@@ -168,11 +173,6 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div id="mobile-menu" className="md:hidden border-t border-border bg-parchment px-4 py-4 flex flex-col gap-3">
-          {user && (
-            <Link href="/home" className="text-body-sm font-medium text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
-              <LayoutDashboard size={14} /> Home
-            </Link>
-          )}
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
               className="text-body-sm font-medium text-coffee flex items-center gap-2"
@@ -196,6 +196,14 @@ export default function Navbar() {
               <Link href="/dashboard" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
                 <LayoutDashboard size={14} /> Dashboard negozio
               </Link>
+              <Link href="/installa" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
+                <Download size={14} /> Installa l&apos;app
+              </Link>
+              {profile?.role === 'admin' && (
+                <Link href="/admin" className="text-body-sm text-coffee flex items-center gap-2" onClick={() => setOpen(false)}>
+                  <ShieldCheck size={14} /> Admin
+                </Link>
+              )}
               <button onClick={() => { setOpen(false); handleSignOut() }}
                 className="text-body-sm text-rust text-left flex items-center gap-2">
                 <LogOut size={14} /> Esci
