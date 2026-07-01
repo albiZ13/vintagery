@@ -38,6 +38,10 @@ export default function DashboardPage() {
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
 
+  // Analytics
+  type AnalyticsRow = { date: string; event_type: string; count: number }
+  const [analytics, setAnalytics] = useState<AnalyticsRow[]>([])
+
   // Nuovo post
   const [newPost, setNewPost]         = useState({ image_url: '', caption: '', price: '', tags: '' })
   const [postLoading, setPostLoading] = useState(false)
@@ -66,13 +70,22 @@ export default function DashboardPage() {
         setForm(shopData)
         setVatNumber(shopData.vat_number ?? '')
 
-        const { data: postData } = await supabase
-          .from('shop_posts')
-          .select('*')
-          .eq('shop_id', shopData.id)
-          .order('created_at', { ascending: false })
+        const [{ data: postData }, { data: analyticsData }] = await Promise.all([
+          supabase
+            .from('shop_posts')
+            .select('*')
+            .eq('shop_id', shopData.id)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('shop_analytics')
+            .select('date,event_type,count')
+            .eq('shop_id', shopData.id)
+            .gte('date', new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10))
+            .order('date', { ascending: true }),
+        ])
 
-        if (postData) setPosts(postData)
+        if (postData)     setPosts(postData)
+        if (analyticsData) setAnalytics(analyticsData as AnalyticsRow[])
       }
       setLoading(false)
     }
@@ -442,35 +455,87 @@ export default function DashboardPage() {
       )}
 
       {/* ── TAB STATS ─────────────────────────────────────────── */}
-      {tab === 'stats' && (
-        <div role="tabpanel" id="tabpanel-stats" aria-labelledby="tab-stats" className="space-y-4">
-          <div className="bg-white border border-border rounded-xl p-5">
-            <h2 className="font-serif font-semibold text-[17px] text-espresso mb-4">Performance</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-surface-soft rounded-lg">
-                <span className="text-caption text-muted">Voto medio</span>
-                <span className="block text-[28px] font-serif font-bold text-espresso mt-1">
-                  {(shop.avg_rating ?? 0) > 0 ? (shop.avg_rating ?? 0).toFixed(1) : '—'}
-                </span>
+      {tab === 'stats' && (() => {
+        const views    = analytics.filter(r => r.event_type === 'view').reduce((s, r) => s + r.count, 0)
+        const clicks   = analytics.filter(r => r.event_type === 'map_click').reduce((s, r) => s + r.count, 0)
+        const lastWeek = analytics.filter(r => r.date >= new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10) && r.event_type === 'view').reduce((s, r) => s + r.count, 0)
+        return (
+          <div role="tabpanel" id="tabpanel-stats" aria-labelledby="tab-stats" className="space-y-4">
+
+            {/* Visite e click — ultimi 28 giorni */}
+            <div className="bg-white border border-border rounded-xl p-5">
+              <h2 className="font-serif font-semibold text-[17px] text-espresso mb-1">Ultimi 28 giorni</h2>
+              <p className="text-[11px] text-muted mb-4">Dati aggiornati in tempo reale</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-4 bg-cream rounded-xl border border-border/60">
+                  <span className="text-[11px] text-muted uppercase tracking-wide">Visite profilo</span>
+                  <span className="block text-[28px] font-serif font-bold text-espresso mt-1 leading-none">
+                    {views > 0 ? views.toLocaleString('it-IT') : '—'}
+                  </span>
+                </div>
+                <div className="p-4 bg-cream rounded-xl border border-border/60">
+                  <span className="text-[11px] text-muted uppercase tracking-wide">Questa settimana</span>
+                  <span className="block text-[28px] font-serif font-bold text-espresso mt-1 leading-none">
+                    {lastWeek > 0 ? lastWeek.toLocaleString('it-IT') : '—'}
+                  </span>
+                </div>
+                <div className="p-4 bg-cream rounded-xl border border-border/60">
+                  <span className="text-[11px] text-muted uppercase tracking-wide">Click mappa</span>
+                  <span className="block text-[28px] font-serif font-bold text-espresso mt-1 leading-none">
+                    {clicks > 0 ? clicks.toLocaleString('it-IT') : '—'}
+                  </span>
+                </div>
               </div>
-              <div className="p-4 bg-surface-soft rounded-lg">
-                <span className="text-caption text-muted">Visibility Score</span>
-                <span className="block text-[28px] font-serif font-bold text-espresso mt-1">
-                  {(shop.visibility_score ?? 0).toFixed(0)}
-                </span>
-                <span className="text-[11px] text-muted">Su ~200 max senza ads</span>
+              {views === 0 && (
+                <p className="text-[12px] text-muted/70 mt-4 text-center">
+                  Nessuna visita registrata ancora — le statistiche si aggiornano quando gli utenti visitano il tuo profilo.
+                </p>
+              )}
+            </div>
+
+            {/* Reputazione */}
+            <div className="bg-white border border-border rounded-xl p-5">
+              <h2 className="font-serif font-semibold text-[17px] text-espresso mb-4">Reputazione</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-cream rounded-xl border border-border/60">
+                  <span className="text-[11px] text-muted uppercase tracking-wide">Voto medio</span>
+                  <span className="block text-[28px] font-serif font-bold text-espresso mt-1 leading-none">
+                    {(shop.avg_rating ?? 0) > 0 ? (shop.avg_rating ?? 0).toFixed(1) : '—'}
+                  </span>
+                  <span className="text-[11px] text-muted">{shop.review_count ?? 0} recensioni</span>
+                </div>
+                <div className="p-4 bg-cream rounded-xl border border-border/60">
+                  <span className="text-[11px] text-muted uppercase tracking-wide">Follower</span>
+                  <span className="block text-[28px] font-serif font-bold text-espresso mt-1 leading-none">
+                    {(shop.followers_count ?? 0).toLocaleString('it-IT')}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="mt-5 p-4 bg-cream rounded-lg border border-border">
-              <p className="text-caption font-medium text-coffee mb-2">Come si calcola il Visibility Score</p>
+
+            {/* Visibility Score */}
+            <div className="bg-white border border-border rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-serif font-semibold text-[17px] text-espresso">Visibility Score</h2>
+                <span className="font-serif font-bold text-[22px] text-espresso">
+                  {(shop.visibility_score ?? 0).toFixed(0)}
+                  <span className="text-[13px] font-normal text-muted"> / ~200</span>
+                </span>
+              </div>
+              <div className="w-full bg-cream rounded-full h-2 mb-3">
+                <div
+                  className="bg-sienna h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, ((shop.visibility_score ?? 0) / 200) * 100)}%` }}
+                />
+              </div>
               <p className="text-[11px] text-muted leading-relaxed">
-                Voto medio ×40 + recensioni ×0.5 + follower ×0.2 + boost pubblicità (max 30pt).<br />
-                La pubblicità vale al massimo il 30% del punteggio — il resto dipende dalla tua reputazione.
+                Voto medio ×40 + recensioni ×0.5 + follower ×0.2 + boost (max 30pt). Il punteggio determina la posizione nella lista negozi.
               </p>
             </div>
+
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── TAB PIANO ─────────────────────────────────────────── */}
       {tab === 'piano' && (
